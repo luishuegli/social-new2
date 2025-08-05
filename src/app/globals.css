@@ -1,26 +1,198 @@
 @import "tailwindcss";
 
-:root {
-  --background: #ffffff;
-  --foreground: #171717;
+/* Design System - Focused Clarity */
+
+/* Liquid Glass System */
+.liquid-glass {
+  /* Dark, Tonal Glass Background */
+  background-color: rgba(26, 26, 26, 0.5); 
+  
+  /* Core Effect */
+  -webkit-backdrop-filter: blur(40px);
+  backdrop-filter: blur(40px);
+  border-radius: 24px;
+
+  /* UPGRADED: Edge Definition Through Light & Shadow */
+  border: 1px solid rgba(255, 255, 255, 0.05); 
+  box-shadow: 
+    /* NEW: This is the top-down light source or "sheen" */
+    inset 0px 1.5px 2px rgba(255, 255, 255, 0.1),
+    
+    /* Softer outer drop shadow */
+    0 12px 32px 0 rgba(0, 0, 0, 0.35); 
 }
 
-@theme inline {
-  --color-background: var(--background);
-  --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+/* Liquid Glass System - Square Version */
+.liquid-glass-square {
+  background-color: rgba(50, 50, 50, 0.4);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 
-@media (prefers-color-scheme: dark) {
-  :root {
-    --background: #0a0a0a;
-    --foreground: #ededed;
+/* Liquid Glass System - Round Version */
+.liquid-glass-round {
+  background-color: rgba(50, 50, 50, 0.4);
+  -webkit-backdrop-filter: blur(20px);
+  backdrop-filter: blur(20px);
+  border-radius: 50%;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
+}
+
+/* === Animated Mesh Gradient Background === */
+
+.has-mesh-gradient {
+  position: relative; /* Establishes a positioning context */
+  background-color: #404040; /* Much Lighter Charcoal Grey */
+  overflow: hidden; /* Prevents blobs from spilling out */
+}
+
+/* Create the first colored blob */
+.has-mesh-gradient::before {
+  content: '';
+  position: absolute;
+  top: -20%; /* Starting position */
+  left: -20%;
+  width: 500px; /* Slightly larger */
+  height: 500px;
+  background-color: #5856d6; /* A brighter, softer purple */
+  border-radius: 50%;
+  
+  /* The key effects: extreme blur and high opacity */
+  filter: blur(180px);
+  opacity: 0.5; /* Brighter */
+
+  /* The animation */
+  animation: move-blob-1 30s infinite alternate ease-in-out; /* Slower animation */
+  z-index: 0; /* Ensures it's behind all content */
+}
+
+/* Create the second colored blob */
+.has-mesh-gradient::after {
+  content: '';
+  position: absolute;
+  bottom: -20%; /* Starting position */
+  right: -20%;
+  width: 600px; /* Slightly larger */
+  height: 600px;
+  background-color: #007aff; /* Keeping the vibrant blue */
+  border-radius: 50%;
+
+  /* The key effects: extreme blur and higher opacity */
+  filter: blur(200px);
+  opacity: 0.4; /* Brighter */
+
+  /* A different animation for variety */
+  animation: move-blob-2 35s infinite alternate ease-in-out; /* Slower animation */
+  z-index: 0; /* Ensures it's behind all content */
+}
+
+/* Define the movement for the first blob */
+@keyframes move-blob-1 {
+  0% {
+    transform: translate(-20%, -20%);
+  }
+  100% {
+    transform: translate(100vw, 100vh);
   }
 }
 
+/* Define the movement for the second blob */
+@keyframes move-blob-2 {
+  0% {
+    transform: translate(20%, 20%);
+  }
+  100% {
+    transform: translate(-100vw, -100vh);
+  }
+}
+
+/* Ensure all foreground content sits above the gradient */
+/* You may need to apply a `position: relative; z-index: 1;` to your direct child elements of the layout if they don't appear */
+
+/* Global Styles */
 body {
-  background: var(--background);
-  color: var(--foreground);
-  font-family: Arial, Helvetica, sans-serif;
+  background-color: #0A0A0A;
+  color: #FFFFFF;
+  font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
+  line-height: 1.5;
+  min-width: 320px;
+  overflow-x: auto;
+}
+
+/* Smooth transitions for interactive elements */
+* {
+  transition: all 0.2s ease-in-out;
+}
+
+/* Focus styles for accessibility */
+*:focus {
+  outline: none;
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  background: #1A1A1A;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #333333;
+  border-radius: 4px;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #A0A0A0;
+}
+
+/* Responsive improvements */
+html {
+  min-width: 320px;
+}
+
+/* Ensure minimum readable text sizes */
+@media (max-width: 640px) {
+  .text-caption {
+    font-size: 0.875rem !important;
+    line-height: 1.25rem !important;
+  }
+  
+  .text-body {
+    font-size: 1rem !important;
+    line-height: 1.5rem !important;
+  }
+}
+
+/* Prevent content from becoming too small */
+.min-w-0 {
+  min-width: 0;
+}
+
+/* Ensure proper text wrapping */
+.break-words {
+  word-wrap: break-word;
+  overflow-wrap: break-word;
+}
+
+/* Line clamp for text truncation */
+.line-clamp-2 {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+/* Ensure proper flex behavior */
+.flex-shrink-0 {
+  flex-shrink: 0;
+}
+
+.flex-1 {
+  flex: 1 1 0%;
 }
