@@ -1,6 +1,7 @@
 import { ActivityPoll } from '../types';
 
-export const mockActivityPolls: (ActivityPoll & { userVoted?: boolean })[] = [
+// Deprecated: mock data removed. Keep file to avoid import errors if referenced.
+export const mockActivityPolls: (ActivityPoll & { userVoted?: boolean })[] = [];
   {
     id: 'poll-1',
     groupName: 'Mountain Adventurers',

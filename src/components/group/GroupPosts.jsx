@@ -1,82 +1,41 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Heart, MessageCircle, Share, MoreHorizontal } from 'lucide-react';
 import LiquidGlass from '../ui/LiquidGlass';
+import PostImageModal from '../ui/PostImageModal';
+import { db } from '@/app/Lib/firebase';
+import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
 
 export default function GroupPosts({ group }) {
-  // Use group parameter to avoid ESLint warning
   if (!group) return null;
-  // Mock posts data - in real app, this would come from API
-  const mockPosts = [
-    {
-      id: 'post-1',
-      title: 'Sunset at the Beach',
-      content: 'Amazing sunset session today! The light was absolutely perfect.',
-      imageUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop',
-      author: {
-        name: 'Sarah Johnson',
-        avatarUrl: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face'
-      },
-      timestamp: '2 hours ago',
-      likes: 24,
-      comments: 8
-    },
-    {
-      id: 'post-2',
-      title: 'Mountain Hiking Trip',
-      content: 'Incredible views from the summit today. Worth every step!',
-      imageUrl: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=600&h=400&fit=crop',
-      author: {
-        name: 'Mike Chen',
-        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
-      },
-      timestamp: '1 day ago',
-      likes: 31,
-      comments: 12
-    },
-    {
-      id: 'post-3',
-      title: 'City Photography Workshop',
-      content: 'Great session learning street photography techniques.',
-      imageUrl: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=600&h=400&fit=crop',
-      author: {
-        name: 'Emma Davis',
-        avatarUrl: 'https://images.unsplash.com/photo-1438761681033-6461ffad8d80?w=150&h=150&fit=crop&crop=face'
-      },
-      timestamp: '3 days ago',
-      likes: 18,
-      comments: 5
-    },
-    {
-      id: 'post-4',
-      title: 'Portrait Session',
-      content: 'Beautiful natural light portraits from today\'s session.',
-      imageUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=600&h=400&fit=crop',
-      author: {
-        name: 'Alex Rodriguez',
-        avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
-      },
-      timestamp: '1 week ago',
-      likes: 42,
-      comments: 15
-    },
-    {
-      id: 'post-5',
-      title: 'Street Photography',
-      content: 'Capturing the urban landscape in black and white.',
-      imageUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=600&h=400&fit=crop',
-      author: {
-        name: 'Lisa Wang',
-        avatarUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=150&h=150&fit=crop&crop=face'
-      },
-      timestamp: '1 week ago',
-      likes: 29,
-      comments: 7
-    }
-  ];
+
+  const [posts, setPosts] = useState([]);
+  const [activeIndex, setActiveIndex] = useState(-1);
+  useEffect(() => {
+    const postsRef = collection(db, 'posts');
+    const q = query(postsRef, where('groupId', '==', group.id), orderBy('timestamp', 'desc'));
+    const unsub = onSnapshot(q, (snap) => {
+      const items = [];
+      snap.forEach((d) => {
+        const data = d.data();
+        items.push({
+          id: d.id,
+          title: data.title || data.activityTitle || 'Post',
+          content: data.description || '',
+          imageUrl: data.media?.[0]?.url || '',
+          author: { name: data.authorName || data.authorId || 'User', avatarUrl: data.authorAvatar || '' },
+          timestamp: data.timestamp?.toDate?.()?.toISOString?.() || new Date().toISOString(),
+          likes: data.likes || 0,
+          comments: data.comments || 0,
+        });
+      });
+      setPosts(items);
+    });
+    return () => unsub();
+  }, [group.id]);
 
   const handleLike = (postId) => {
     // TODO: Implement like functionality
@@ -94,6 +53,7 @@ export default function GroupPosts({ group }) {
   };
 
   return (
+    <>
     <LiquidGlass className="p-6">
       <div className="space-y-6">
         {/* Posts Header */}
@@ -112,7 +72,7 @@ export default function GroupPosts({ group }) {
 
         {/* Posts Grid */}
         <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
-          {mockPosts.map((post, index) => (
+          {posts.map((post, index) => (
             <motion.div
               key={post.id}
               initial={{ opacity: 0, y: 20 }}
@@ -121,13 +81,21 @@ export default function GroupPosts({ group }) {
             >
               <div className="overflow-hidden bg-white/10 backdrop-blur-sm rounded-lg">
                 {/* Post Image */}
-                <div className="relative h-48 overflow-hidden">
-                  <Image
-                    src={post.imageUrl}
-                    alt={post.title}
-                    fill
-                    className="object-cover hover:scale-105 transition-transform duration-300"
-                  />
+                <div className="relative h-48 overflow-hidden cursor-pointer" onClick={() => setActiveIndex(index)}>
+                  {(() => {
+                    const imageSrc = (post.imageUrl && typeof post.imageUrl === 'string' && post.imageUrl.trim().length > 0)
+                      ? post.imageUrl
+                      : `https://picsum.photos/seed/${post.id}/800/400`;
+                    return (
+                      <Image
+                        src={imageSrc}
+                        alt={post.title || 'Post image'}
+                        fill
+                        sizes="(max-width: 768px) 100vw, 50vw"
+                        className="object-cover hover:scale-105 transition-transform duration-300"
+                      />
+                    );
+                  })()}
                 </div>
 
                 {/* Post Content */}
@@ -200,5 +168,13 @@ export default function GroupPosts({ group }) {
         </div>
       </div>
     </LiquidGlass>
+    <PostImageModal
+      isOpen={activeIndex >= 0}
+      post={activeIndex >= 0 ? posts[activeIndex] : null}
+      onClose={() => setActiveIndex(-1)}
+      onPrev={activeIndex > 0 ? () => setActiveIndex((i) => Math.max(0, i - 1)) : undefined}
+      onNext={activeIndex < posts.length - 1 ? () => setActiveIndex((i) => Math.min(posts.length - 1, i + 1)) : undefined}
+    />
+    </>
   );
 } 

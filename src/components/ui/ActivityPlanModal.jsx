@@ -2,50 +2,56 @@
 
 import React, { useState } from 'react';
 import { motion, AnimatePresence } from 'framer-motion';
-import { X, Calendar, MapPin, Clock, Users, Sparkles, Plus } from 'lucide-react';
+import { X, Sparkles, Calendar, Users, MapPin, Clock, DollarSign } from 'lucide-react';
 import LiquidGlass from './LiquidGlass';
+import SingleActivityPlanner from '../planning/SingleActivityPlanner';
+import HolidayPlanner from '../planning/HolidayPlanner';
+import ManualPollCreator from '../planning/ManualPollCreator';
 
-export default function ActivityPlanModal({ isOpen, onClose, groupName }) {
-  const [selectedOption, setSelectedOption] = useState(null);
-  const [activityData, setActivityData] = useState({
-    title: '',
-    description: '',
-    date: '',
-    time: '',
-    location: '',
-    maxParticipants: ''
-  });
-
-  const handleManualCreate = () => {
-    setSelectedOption('manual');
+export default function ActivityPlanModal({ isOpen, onClose, groupName, groupId }) {
+  const [currentFlow, setCurrentFlow] = useState(null);
+  
+  // Extract group ID from URL if not provided
+  const currentGroupId = groupId || (typeof window !== 'undefined' ? window.location.pathname.split('/groups/')[1] : 'group-6');
+  const handleFlowSelect = (flow) => {
+    setCurrentFlow(flow);
   };
 
-  const handleAISuggest = () => {
-    setSelectedOption('ai');
+  const handleBack = () => {
+    setCurrentFlow(null);
   };
 
-  const handleSubmit = (e) => {
-    e.preventDefault();
-    console.log('Creating activity:', activityData);
-    // TODO: Implement activity creation API call
+  const handleClose = () => {
+    setCurrentFlow(null);
     onClose();
-    setSelectedOption(null);
-    setActivityData({
-      title: '',
-      description: '',
-      date: '',
-      time: '',
-      location: '',
-      maxParticipants: ''
-    });
   };
 
-  const handleAISubmit = () => {
-    console.log('Requesting AI suggestions for:', groupName);
-    // TODO: Implement AI suggestion API call
-    onClose();
-    setSelectedOption(null);
-  };
+  const planningOptions = [
+    {
+      id: 'singleActivity',
+      title: 'A Single Activity',
+      subtitle: 'AI-powered suggestions for one perfect activity',
+      icon: Sparkles,
+      color: 'from-blue-500 to-purple-600',
+      description: 'Get personalized recommendations based on your group\'s interests and preferences.'
+    },
+    {
+      id: 'holiday',
+      title: 'A Holiday',
+      subtitle: 'Plan multi-day adventures with collaborative itinerary',
+      icon: Calendar,
+      color: 'from-green-500 to-teal-600',
+      description: 'Create immersive travel experiences with real-time collaboration and detailed planning.'
+    },
+    {
+      id: 'manualPoll',
+      title: 'A Manual Poll',
+      subtitle: 'Create custom polls with images and descriptions',
+      icon: Users,
+      color: 'from-orange-500 to-red-600',
+      description: 'Design your own activity poll with images and let your group vote on the options.'
+    }
+  ];
 
   return (
     <AnimatePresence>
@@ -57,7 +63,7 @@ export default function ActivityPlanModal({ isOpen, onClose, groupName }) {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             className="absolute inset-0 bg-black/50 backdrop-blur-sm"
-            onClick={onClose}
+            onClick={handleClose}
           />
 
           {/* Modal */}
@@ -65,188 +71,117 @@ export default function ActivityPlanModal({ isOpen, onClose, groupName }) {
             initial={{ opacity: 0, scale: 0.95, y: 20 }}
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
-            transition={{ duration: 0.2 }}
-            className="relative w-full max-w-md"
+            transition={{ duration: 0.3 }}
+            className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden"
           >
-            <LiquidGlass className="p-6">
+            <LiquidGlass className="p-6 max-h-[90vh] overflow-y-auto">
               {/* Header */}
-              <div className="flex items-center justify-between mb-6">
-                <h2 className="text-xl font-bold text-white">Plan New Activity</h2>
+              <div className="flex items-center justify-between mb-8">
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-2">
+                    {currentFlow ? 'Activity Planner' : 'Plan Something Amazing'}
+                  </h2>
+                  <p className="text-white/70">
+                    {currentFlow ? 'Choose your planning approach' : `What would you like to plan today${groupName ? ` for ${groupName}` : ''}?`}
+                  </p>
+                </div>
                 <button
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="p-2 text-white/70 hover:text-white transition-colors duration-200"
                 >
-                  <X className="w-5 h-5" />
+                  <X className="w-6 h-6" />
                 </button>
               </div>
 
+              {/* Back Button for Sub-flows */}
+              {currentFlow && (
+                <motion.button
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  onClick={handleBack}
+                  className="mb-6 flex items-center space-x-2 text-white/70 hover:text-white transition-colors duration-200"
+                >
+                  <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+                  </svg>
+                  <span>Back to Options</span>
+                </motion.button>
+              )}
+
               {/* Content */}
-              {!selectedOption ? (
-                <div className="space-y-4">
-                  <p className="text-white/70 text-sm">
-                    Choose how you'd like to plan an activity for <span className="font-semibold text-white">{groupName}</span>
-                  </p>
-                  
-                  {/* Manual Option */}
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleManualCreate}
-                    className="w-full p-4 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 hover:bg-white/20 transition-all duration-200 flex items-center space-x-3"
-                  >
-                    <div className="p-2 bg-white/20 rounded-lg">
-                      <Plus className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <h3 className="font-semibold text-white">Create Manually</h3>
-                      <p className="text-sm text-white/70">Plan your own activity with full control</p>
-                    </div>
-                  </motion.button>
+              {!currentFlow ? (
+                // Initial Choice Screen
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                  {planningOptions.map((option, index) => {
+                    const IconComponent = option.icon;
+                    return (
+                      <motion.div
+                        key={option.id}
+                        initial={{ opacity: 0, y: 20 }}
+                        animate={{ opacity: 1, y: 0 }}
+                        transition={{ duration: 0.4, delay: index * 0.1 }}
+                        whileHover={{ scale: 1.02 }}
+                        whileTap={{ scale: 0.98 }}
+                      >
+                        <button
+                          onClick={() => handleFlowSelect(option.id)}
+                          className="w-full h-full text-left"
+                        >
+                          <LiquidGlass className="p-6 h-full hover:bg-white/5 transition-all duration-200">
+                            {/* Icon */}
+                            <div className={`w-12 h-12 rounded-lg bg-gradient-to-r ${option.color} flex items-center justify-center mb-4`}>
+                              <IconComponent className="w-6 h-6 text-white" />
+                            </div>
 
-                  {/* AI Option */}
-                  <motion.button
-                    whileHover={{ scale: 1.02 }}
-                    whileTap={{ scale: 0.98 }}
-                    onClick={handleAISuggest}
-                    className="w-full p-4 bg-white/10 backdrop-blur-sm rounded-lg border border-white/20 hover:bg-white/20 transition-all duration-200 flex items-center space-x-3"
-                  >
-                    <div className="p-2 bg-white/20 rounded-lg">
-                      <Sparkles className="w-5 h-5 text-white" />
-                    </div>
-                    <div className="text-left">
-                      <h3 className="font-semibold text-white">AI Suggestions</h3>
-                      <p className="text-sm text-white/70">Get personalized activity recommendations</p>
-                    </div>
-                  </motion.button>
+                            {/* Content */}
+                            <h3 className="text-lg font-semibold text-white mb-2">{option.title}</h3>
+                            <p className="text-sm text-white/70 mb-3">{option.subtitle}</p>
+                            <p className="text-xs text-white/50">{option.description}</p>
+                          </LiquidGlass>
+                        </button>
+                      </motion.div>
+                    );
+                  })}
                 </div>
-              ) : selectedOption === 'manual' ? (
-                <form onSubmit={handleSubmit} className="space-y-4">
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">Activity Title</label>
-                    <input
-                      type="text"
-                      value={activityData.title}
-                      onChange={(e) => setActivityData({ ...activityData, title: e.target.value })}
-                      className="w-full bg-white/10 text-white placeholder-white/50 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/20 backdrop-blur-sm"
-                      placeholder="Enter activity title"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">Description</label>
-                    <textarea
-                      value={activityData.description}
-                      onChange={(e) => setActivityData({ ...activityData, description: e.target.value })}
-                      className="w-full bg-white/10 text-white placeholder-white/50 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/20 backdrop-blur-sm"
-                      placeholder="Describe the activity"
-                      rows={3}
-                      required
-                    />
-                  </div>
-
-                  <div className="grid grid-cols-2 gap-4">
-                    <div>
-                      <label className="block text-sm font-medium text-white mb-2">Date</label>
-                      <input
-                        type="date"
-                        value={activityData.date}
-                        onChange={(e) => setActivityData({ ...activityData, date: e.target.value })}
-                        className="w-full bg-white/10 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/20 backdrop-blur-sm"
-                        required
-                      />
-                    </div>
-                    <div>
-                      <label className="block text-sm font-medium text-white mb-2">Time</label>
-                      <input
-                        type="time"
-                        value={activityData.time}
-                        onChange={(e) => setActivityData({ ...activityData, time: e.target.value })}
-                        className="w-full bg-white/10 text-white rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/20 backdrop-blur-sm"
-                        required
-                      />
-                    </div>
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">Location</label>
-                    <input
-                      type="text"
-                      value={activityData.location}
-                      onChange={(e) => setActivityData({ ...activityData, location: e.target.value })}
-                      className="w-full bg-white/10 text-white placeholder-white/50 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/20 backdrop-blur-sm"
-                      placeholder="Enter location"
-                      required
-                    />
-                  </div>
-
-                  <div>
-                    <label className="block text-sm font-medium text-white mb-2">Max Participants</label>
-                    <input
-                      type="number"
-                      value={activityData.maxParticipants}
-                      onChange={(e) => setActivityData({ ...activityData, maxParticipants: e.target.value })}
-                      className="w-full bg-white/10 text-white placeholder-white/50 rounded-lg px-3 py-2 focus:outline-none focus:ring-2 focus:ring-white/20 backdrop-blur-sm"
-                      placeholder="Enter max participants"
-                      min="1"
-                    />
-                  </div>
-
-                  <div className="flex space-x-3 pt-4">
-                    <button
-                      type="button"
-                      onClick={() => setSelectedOption(null)}
-                      className="flex-1 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all duration-200"
-                    >
-                      Back
-                    </button>
-                    <button
-                      type="submit"
-                      className="flex-1 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-all duration-200"
-                    >
-                      Create Activity
-                    </button>
-                  </div>
-                </form>
               ) : (
-                <div className="space-y-4">
-                  <div className="text-center">
-                    <div className="w-16 h-16 mx-auto mb-4 bg-white/20 rounded-full flex items-center justify-center">
-                      <Sparkles className="w-8 h-8 text-white" />
-                    </div>
-                    <h3 className="text-lg font-semibold text-white mb-2">AI Activity Suggestions</h3>
-                    <p className="text-white/70 text-sm">
-                      Our AI will analyze your group's interests and suggest personalized activities.
-                    </p>
-                  </div>
-
-                  <div className="bg-white/10 backdrop-blur-sm rounded-lg p-4">
-                    <h4 className="font-semibold text-white mb-2">What we'll consider:</h4>
-                    <ul className="text-sm text-white/70 space-y-1">
-                      <li>• Group member interests and preferences</li>
-                      <li>• Previous successful activities</li>
-                      <li>• Local events and opportunities</li>
-                      <li>• Weather and seasonal factors</li>
-                      <li>• Group size and dynamics</li>
-                    </ul>
-                  </div>
-
-                  <div className="flex space-x-3 pt-4">
-                    <button
-                      onClick={() => setSelectedOption(null)}
-                      className="flex-1 px-4 py-2 bg-white/10 text-white rounded-lg hover:bg-white/20 transition-all duration-200"
+                // Specific Flow Components
+                <AnimatePresence mode="wait">
+                  {currentFlow === 'singleActivity' && (
+                    <motion.div
+                      key="singleActivity"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.3 }}
                     >
-                      Back
-                    </button>
-                    <button
-                      onClick={handleAISubmit}
-                      className="flex-1 px-4 py-2 bg-white/20 text-white rounded-lg hover:bg-white/30 transition-all duration-200 flex items-center justify-center space-x-2"
+                      <SingleActivityPlanner onClose={handleClose} groupId={currentGroupId} />
+                    </motion.div>
+                  )}
+
+                  {currentFlow === 'holiday' && (
+                    <motion.div
+                      key="holiday"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.3 }}
                     >
-                      <Sparkles className="w-4 h-4" />
-                      <span>Get Suggestions</span>
-                    </button>
-                  </div>
-                </div>
+                      <HolidayPlanner onClose={handleClose} />
+                    </motion.div>
+                  )}
+
+                  {currentFlow === 'manualPoll' && (
+                    <motion.div
+                      key="manualPoll"
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      exit={{ opacity: 0, x: -20 }}
+                      transition={{ duration: 0.3 }}
+                    >
+                      <ManualPollCreator onClose={handleClose} groupId={currentGroupId} />
+                    </motion.div>
+                  )}
+                </AnimatePresence>
               )}
             </LiquidGlass>
           </motion.div>

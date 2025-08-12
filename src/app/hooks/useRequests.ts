@@ -1,73 +1,66 @@
 'use client';
 
-import { useState, useEffect, useCallback } from 'react';
-import { mockRequests } from '../utils/mockRequests';
-import { Request } from '../types';
+import { useState, useEffect } from 'react';
+import { db } from '../Lib/firebase';
+import { collection, query, where, onSnapshot, addDoc, serverTimestamp } from 'firebase/firestore';
+import { useAuth } from '../contexts/AuthContext';
+
+type RequestItem = {
+  id: string;
+  type?: string;
+  title?: string;
+  description?: string;
+  requester?: any;
+  target?: any;
+  timestamp?: any;
+  status?: string;
+};
 
 export function useRequests() {
-  const [requests, setRequests] = useState<Request[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [requests, setRequests] = useState<RequestItem[]>([]);
+  const [loading, setLoading] = useState<boolean>(true);
   const [error, setError] = useState<string | null>(null);
 
+  const { user } = useAuth();
+
   useEffect(() => {
-    // Simulate API call
-    const fetchRequests = async () => {
-      try {
-        setLoading(true);
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 800));
-        
-        // Sort by most recent timestamp
-        const sortedRequests: Request[] = [...mockRequests].sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        );
-        
-        setRequests(sortedRequests);
+    if (!user) {
+      setRequests([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const reqRef = collection(db, 'requests');
+      const q = query(reqRef, where('targetUserId', '==', user.uid));
+      const unsub = onSnapshot(q, (snap) => {
+        const items: RequestItem[] = [];
+        snap.forEach((d) => items.push({ id: d.id, ...d.data() }));
+        setRequests(items);
         setError(null);
-      } catch (err) {
-        setError('Failed to load requests');
-        console.error('Error fetching requests:', err);
-      } finally {
         setLoading(false);
-      }
-    };
-
-    fetchRequests();
-  }, []);
-
-  const handleAcceptRequest = useCallback(async (requestId: string) => {
-    try {
-      console.log('Accepting request:', requestId);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Remove the request from the list
-      setRequests(prev => prev.filter(req => req.id !== requestId));
-      
-      // In a real app, you would make an API call here
-      // await api.acceptRequest(requestId);
+      }, (err) => {
+        console.error('Requests listener error:', err);
+        setError('Failed to load requests');
+        setLoading(false);
+      });
+      return () => unsub();
     } catch (err) {
-      console.error('Error accepting request:', err);
-      setError('Failed to accept request');
+      console.error('Error setting up requests listener:', err);
+      setError('Failed to load requests');
+      setLoading(false);
     }
-  }, []);
+  }, [user]);
 
-  const handleDeclineRequest = useCallback(async (requestId: string) => {
-    try {
-      console.log('Declining request:', requestId);
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 500));
-      
-      // Remove the request from the list
-      setRequests(prev => prev.filter(req => req.id !== requestId));
-      
-      // In a real app, you would make an API call here
-      // await api.declineRequest(requestId);
-    } catch (err) {
-      console.error('Error declining request:', err);
-      setError('Failed to decline request');
-    }
-  }, []);
+  const handleAcceptRequest = async (requestId: string) => {
+    // For now, just remove from UI. You can update Firestore status here as needed.
+    setRequests(prev => prev.filter(req => (req as any).id !== requestId));
+  };
+
+  const handleDeclineRequest = async (requestId: string) => {
+    setRequests(prev => prev.filter(req => (req as any).id !== requestId));
+  };
 
   return {
     requests,

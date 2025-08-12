@@ -1,0 +1,3 @@
+      // Create simple query to get all polls (no index required)
+      const pollsRef = collection(db, 'polls');
+      const q = query(pollsRef, orderBy('createdAt', 'desc'));

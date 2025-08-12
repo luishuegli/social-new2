@@ -1,52 +1,35 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { ChevronLeft, ChevronRight } from 'lucide-react';
 import LiquidGlass from '../ui/LiquidGlass';
+import { db } from '@/app/Lib/firebase';
+import { collection, onSnapshot, orderBy, query, where, limit } from 'firebase/firestore';
 
 export default function LatestPosts({ group }) {
-  // Use group parameter to avoid ESLint warning
   if (!group) return null;
-  // Mock data for latest posts - in real app, this would come from API
-  const mockPosts = [
-    {
-      id: 'post-1',
-      title: 'Sunset at the Beach',
-      imageUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=200&fit=crop',
-      author: 'Sarah Johnson',
-      timestamp: '2 hours ago'
-    },
-    {
-      id: 'post-2',
-      title: 'Mountain Hiking Trip',
-      imageUrl: 'https://images.unsplash.com/photo-1551632811-561732d1e306?w=300&h=200&fit=crop',
-      author: 'Mike Chen',
-      timestamp: '1 day ago'
-    },
-    {
-      id: 'post-3',
-      title: 'City Photography Workshop',
-      imageUrl: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=300&h=200&fit=crop',
-      author: 'Emma Davis',
-      timestamp: '3 days ago'
-    },
-    {
-      id: 'post-4',
-      title: 'Portrait Session',
-      imageUrl: 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=300&h=200&fit=crop',
-      author: 'Alex Rodriguez',
-      timestamp: '1 week ago'
-    },
-    {
-      id: 'post-5',
-      title: 'Street Photography',
-      imageUrl: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=300&h=200&fit=crop',
-      author: 'Lisa Wang',
-      timestamp: '1 week ago'
-    }
-  ];
+  const [posts, setPosts] = useState([]);
+  useEffect(() => {
+    const refCol = collection(db, 'posts');
+    const q = query(refCol, where('groupId', '==', group.id), orderBy('timestamp', 'desc'), limit(10));
+    const unsub = onSnapshot(q, (snap) => {
+      const items = [];
+      snap.forEach((d) => {
+        const data = d.data();
+        items.push({
+          id: d.id,
+          title: data.title || data.activityTitle || 'Post',
+          imageUrl: data.media?.[0]?.url || '',
+          author: data.authorName || data.authorId || 'User',
+          timestamp: data.timestamp?.toDate?.()?.toISOString?.() || new Date().toISOString(),
+        });
+      });
+      setPosts(items);
+    });
+    return () => unsub();
+  }, [group.id]);
 
   return (
     <motion.div
@@ -66,7 +49,7 @@ export default function LatestPosts({ group }) {
         {/* Horizontal Scrolling Carousel */}
         <div className="relative">
           <div className="flex space-x-4 overflow-x-auto pb-4 scrollbar-hide">
-            {mockPosts.map((post, index) => (
+            {posts.map((post, index) => (
               <motion.div
                 key={post.id}
                 initial={{ opacity: 0, x: 20 }}

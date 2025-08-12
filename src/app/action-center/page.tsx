@@ -184,18 +184,18 @@ export default function ActionCenterPage() {
         {/* Tabbed Navigation - Now wrapped in LiquidGlass */}
         <div className="mb-6 sm:mb-8 min-w-0">
           <div className="liquid-glass p-4">
-            <div className="flex space-x-1 bg-white/10 backdrop-blur-sm rounded-card p-1 overflow-x-auto">
+            <div className="flex space-x-1 bg-white/10 backdrop-blur-sm rounded-lg border border-white/10 p-1 overflow-x-auto">
               {tabs.map((tab) => (
                 <button
                   key={tab.id}
                   onClick={() => setActiveTab(tab.id)}
                   className={`
-                    flex-1 px-3 sm:px-4 lg:px-6 py-2 sm:py-3 rounded-card text-caption sm:text-body font-semibold transition-all duration-200 whitespace-nowrap
+                    flex-1 px-3 sm:px-4 lg:px-6 py-2 sm:py-3 rounded-lg text-caption sm:text-body font-semibold transition-all duration-200 whitespace-nowrap
                     focus:outline-none focus:ring-0 focus:border-0 focus:shadow-none
                     active:outline-none active:ring-0 active:border-0 active:shadow-none
                     ${activeTab === tab.id
                       ? 'bg-white/20 text-white backdrop-blur-sm'
-                      : 'text-white/70 hover:text-white'
+                      : 'text-white/70 hover:text-white hover:bg-white/5 transition-all duration-200'
                     }
                   `}
                   style={{ outline: 'none' }}

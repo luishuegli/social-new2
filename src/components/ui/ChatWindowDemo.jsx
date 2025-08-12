@@ -15,7 +15,7 @@ const ChatWindowDemo = () => {
       sender: {
         id: 'user-1',
         name: 'Sarah Johnson',
-        avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face'
+        avatar: ''
       },
       timestamp: new Date(Date.now() - 1000 * 60 * 30).toISOString() // 30 minutes ago
     },
@@ -25,7 +25,7 @@ const ChatWindowDemo = () => {
       sender: {
         id: 'user-2',
         name: 'Mike Chen',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
+        avatar: ''
       },
       timestamp: new Date(Date.now() - 1000 * 60 * 25).toISOString() // 25 minutes ago
     },
@@ -35,7 +35,7 @@ const ChatWindowDemo = () => {
       sender: {
         id: 'current-user',
         name: 'You',
-        avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face'
+        avatar: ''
       },
       timestamp: new Date(Date.now() - 1000 * 60 * 20).toISOString() // 20 minutes ago
     },
@@ -45,7 +45,7 @@ const ChatWindowDemo = () => {
       sender: {
         id: 'user-2',
         name: 'Mike Chen',
-        avatar: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
+        avatar: ''
       },
       timestamp: new Date(Date.now() - 1000 * 60 * 15).toISOString() // 15 minutes ago
     },
@@ -55,7 +55,7 @@ const ChatWindowDemo = () => {
       sender: {
         id: 'current-user',
         name: 'You',
-        avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face'
+        avatar: ''
       },
       timestamp: new Date(Date.now() - 1000 * 60 * 10).toISOString() // 10 minutes ago
     }
@@ -64,7 +64,7 @@ const ChatWindowDemo = () => {
   const currentUser = {
     id: 'current-user',
     name: 'You',
-    avatar: 'https://images.unsplash.com/photo-1506794778202-cad84cf45f1d?w=150&h=150&fit=crop&crop=face'
+    avatar: ''
   };
 
   const handleSendMessage = (messageContent) => {

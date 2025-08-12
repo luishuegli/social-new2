@@ -41,6 +41,17 @@
   box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.3);
 }
 
+/* === Denser Glass Style for High-Contrast Content Cards === */
+.liquid-glass-dense {
+  /* Using a higher opacity (70%) for the background color */
+  background-color: rgba(26, 26, 26, 0.7); 
+  
+  /* Core Effect (Same as our standard glass) */
+  -webkit-backdrop-filter: blur(30px);
+  backdrop-filter: blur(30px);
+  border-top: 1px solid rgba(255, 255, 255, 0.1); /* A top border to separate from the image */
+}
+
 /* === Animated Mesh Gradient Background === */
 
 .has-mesh-gradient {
@@ -49,64 +60,86 @@
   overflow: hidden; /* Prevents blobs from spilling out */
 }
 
-/* Create the first colored blob */
+/* Create a background layer that sits behind everything */
 .has-mesh-gradient::before {
   content: '';
-  position: absolute;
-  top: -20%; /* Starting position */
-  left: -20%;
-  width: 500px; /* Slightly larger */
-  height: 500px;
-  background-color: #5856d6; /* A brighter, softer purple */
-  border-radius: 50%;
-  
-  /* The key effects: extreme blur and high opacity */
-  filter: blur(180px);
-  opacity: 0.5; /* Brighter */
-
-  /* The animation */
-  animation: move-blob-1 30s infinite alternate ease-in-out; /* Slower animation */
-  z-index: 0; /* Ensures it's behind all content */
+  position: fixed; /* Fixed to viewport, not affected by scrolling */
+  top: 0;
+  left: 0;
+  width: 100vw;
+  height: 100vh;
+  background: 
+    radial-gradient(circle at 20% 20%, rgba(88, 86, 214, 0.3) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(0, 122, 255, 0.2) 0%, transparent 50%);
+  z-index: -10; /* Far behind everything */
+  pointer-events: none; /* Don't interfere with interactions */
 }
 
-/* Create the second colored blob */
+/* Create the first animated blob - restricted movement */
 .has-mesh-gradient::after {
   content: '';
   position: absolute;
-  bottom: -20%; /* Starting position */
-  right: -20%;
-  width: 600px; /* Slightly larger */
-  height: 600px;
-  background-color: #007aff; /* Keeping the vibrant blue */
+  top: 10%;
+  left: 10%;
+  width: 300px;
+  height: 300px;
+  background-color: rgba(88, 86, 214, 0.1); /* Much more subtle */
   border-radius: 50%;
-
-  /* The key effects: extreme blur and higher opacity */
-  filter: blur(200px);
-  opacity: 0.4; /* Brighter */
-
-  /* A different animation for variety */
-  animation: move-blob-2 35s infinite alternate ease-in-out; /* Slower animation */
-  z-index: 0; /* Ensures it's behind all content */
+  filter: blur(100px); /* Less blur */
+  animation: gentle-float 20s infinite ease-in-out;
+  z-index: -5; /* Behind content but above fixed background */
+  pointer-events: none;
 }
 
-/* Define the movement for the first blob */
-@keyframes move-blob-1 {
-  0% {
-    transform: translate(-20%, -20%);
+/* Gentle floating animation that doesn't cross the screen */
+@keyframes gentle-float {
+  0%, 100% {
+    transform: translate(0, 0) scale(1);
   }
-  100% {
-    transform: translate(100vw, 100vh);
+  25% {
+    transform: translate(50px, -30px) scale(1.1);
+  }
+  50% {
+    transform: translate(-30px, 50px) scale(0.9);
+  }
+  75% {
+    transform: translate(30px, 30px) scale(1.05);
   }
 }
 
-/* Define the movement for the second blob */
-@keyframes move-blob-2 {
-  0% {
-    transform: translate(20%, 20%);
-  }
-  100% {
-    transform: translate(-100vw, -100vh);
-  }
+/* Ensure all images and content have proper stacking */
+img, .liquid-glass, .liquid-glass-dense {
+  position: relative;
+  z-index: 1;
+}
+
+/* Special rule for post card images to be completely opaque */
+.post-image {
+  position: relative;
+  z-index: 10;
+  background-color: #000; /* Solid black background as fallback */
+}
+
+/* Custom slider styling for AI Planner */
+.slider::-webkit-slider-thumb {
+  appearance: none;
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
+}
+
+.slider::-moz-range-thumb {
+  height: 20px;
+  width: 20px;
+  border-radius: 50%;
+  background: #ffffff;
+  cursor: pointer;
+  border: 2px solid #ffffff;
+  box-shadow: 0 2px 6px rgba(0, 0, 0, 0.3);
 }
 
 /* Ensure all foreground content sits above the gradient */
@@ -148,6 +181,16 @@ body {
 
 ::-webkit-scrollbar-thumb:hover {
   background: #A0A0A0;
+}
+
+/* Hide scrollbar but maintain scroll functionality */
+.scrollbar-hide {
+  -ms-overflow-style: none;  /* Internet Explorer 10+ */
+  scrollbar-width: none;  /* Firefox */
+}
+
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;  /* Safari and Chrome */
 }
 
 /* Responsive improvements */

@@ -1,44 +1,34 @@
 'use client';
 
-import React from 'react';
+import React, { useEffect, useState } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { MessageCircle, ArrowRight } from 'lucide-react';
 import LiquidGlass from '../ui/LiquidGlass';
+import { db } from '@/app/Lib/firebase';
+import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 
 export default function RecentChat({ group }) {
-  // Use group parameter to avoid ESLint warning
   if (!group) return null;
-  // Mock data for recent messages - in real app, this would come from API
-  const mockMessages = [
-    {
-      id: 'msg-1',
-      content: 'Great photos from the sunset session! Can\'t wait for the next meetup.',
-      author: {
-        name: 'Sarah Johnson',
-        avatarUrl: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face'
-      },
-      timestamp: '2 hours ago'
-    },
-    {
-      id: 'msg-2',
-      content: 'Anyone up for a street photography walk this weekend?',
-      author: {
-        name: 'Mike Chen',
-        avatarUrl: 'https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=150&h=150&fit=crop&crop=face'
-      },
-      timestamp: '4 hours ago'
-    },
-    {
-      id: 'msg-3',
-      content: 'The new camera settings tutorial was really helpful. Thanks Emma!',
-      author: {
-        name: 'Alex Rodriguez',
-        avatarUrl: 'https://images.unsplash.com/photo-1472099645785-5658abf4ff4e?w=150&h=150&fit=crop&crop=face'
-      },
-      timestamp: '1 day ago'
-    }
-  ];
+  const [messages, setMessages] = useState([]);
+  useEffect(() => {
+    const refCol = collection(db, 'groups', group.id, 'messages');
+    const q = query(refCol, orderBy('timestamp', 'desc'), limit(5));
+    const unsub = onSnapshot(q, (snap) => {
+      const items = [];
+      snap.forEach((d) => {
+        const data = d.data();
+        items.push({
+          id: d.id,
+          content: data.text || data.content || '',
+          author: { name: data.senderName || data.senderId || 'User', avatarUrl: data.senderAvatar || '' },
+          timestamp: data.timestamp?.toDate?.()?.toISOString?.() || new Date().toISOString(),
+        });
+      });
+      setMessages(items.reverse());
+    });
+    return () => unsub();
+  }, [group.id]);
 
   return (
     <motion.div
@@ -58,7 +48,7 @@ export default function RecentChat({ group }) {
 
         {/* Recent Messages */}
         <div className="space-y-3 mb-4">
-          {mockMessages.map((message, index) => (
+          {messages.map((message, index) => (
             <motion.div
               key={message.id}
               initial={{ opacity: 0, x: -20 }}

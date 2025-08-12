@@ -1,7 +1,9 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { mockConversations } from '../utils/mockData';
+import { db } from '../Lib/firebase';
+import { collection, query, where, orderBy, onSnapshot, limit, getDocs, doc, getDoc } from 'firebase/firestore';
+import { useAuth } from '../contexts/AuthContext';
 import { Conversation } from '../types';
 
 export function useConversations() {
@@ -9,31 +11,79 @@ export function useConversations() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  useEffect(() => {
-    // Simulate API call
-    const fetchConversations = async () => {
-      try {
-        setLoading(true);
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Sort by most recent message
-        const sortedConversations: Conversation[] = [...mockConversations].sort((a, b) => 
-          new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime()
-        );
-        
-        setConversations(sortedConversations);
-        setError(null);
-      } catch (err) {
-        setError('Failed to load conversations');
-        console.error('Error fetching conversations:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+  const { user } = useAuth();
 
-    fetchConversations();
-  }, []);
+  useEffect(() => {
+    if (!user) {
+      setConversations([]);
+      setLoading(false);
+      return;
+    }
+
+    setLoading(true);
+    try {
+      const chatsRef = collection(db, 'chats');
+      // Chats where current user is a member
+      const q = query(chatsRef, where('members', 'array-contains', user.uid));
+
+      const unsub = onSnapshot(q, async (snapshot) => {
+        const items: Conversation[] = [];
+        for (const docSnap of snapshot.docs) {
+          const data = docSnap.data() as any;
+          const otherId = (data.members || []).find((id: string) => id !== user.uid);
+          // Fetch last message
+          const msgsRef = collection(db, 'chats', docSnap.id, 'messages');
+          const lastQ = query(msgsRef, orderBy('timestamp', 'desc'), limit(1));
+          const lastSnap = await getDocs(lastQ);
+          const last = lastSnap.docs[0]?.data();
+
+          // Fetch other user's profile for name and avatar
+          let otherName = otherId || 'User';
+          let otherAvatar = '';
+          if (otherId) {
+            try {
+              const otherRef = doc(db, 'users', otherId);
+              const profile = await getDoc(otherRef);
+              if (profile.exists()) {
+                const pd: any = profile.data();
+                otherName = pd.displayName || otherId;
+                otherAvatar = pd.profilePictureUrl || '';
+              }
+            } catch {}
+          }
+          items.push({
+            id: docSnap.id,
+            otherUser: {
+              id: otherId || 'unknown',
+              name: otherName,
+              avatar: otherAvatar
+            },
+            lastMessage: last ? {
+              content: last.text,
+              timestamp: last.timestamp?.toDate?.().toISOString?.() || new Date().toISOString(),
+              senderId: last.senderId
+            } : { content: '', timestamp: new Date().toISOString(), senderId: '' },
+            unreadCount: 0
+          });
+        }
+
+        items.sort((a, b) => new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime());
+        setConversations(items);
+        setError(null);
+        setLoading(false);
+      }, (err) => {
+        console.error('Conversations listener error:', err);
+        setError('Failed to load conversations');
+        setLoading(false);
+      });
+
+      return () => unsub();
+    } catch (err) {
+      console.error('Error setting up conversations listener:', err);
+      setError('Failed to load conversations');
+      setLoading(false);
+    }
+  }, [user]);
 
   return {
     conversations,

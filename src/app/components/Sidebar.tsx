@@ -61,8 +61,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <div className="flex items-center justify-between">
               <div className="min-w-0 flex-1">
                 <div className="flex items-center space-x-3">
-                  <div className="w-10 h-10 bg-accent-primary rounded-lg flex items-center justify-center flex-shrink-0">
-                    <span className="text-content-primary font-bold text-xl">S</span>
+                  <div className="w-10 h-10 bg-black rounded-lg flex items-center justify-center flex-shrink-0">
+                    <span className="text-content-primary font-bold text-2xl">S</span>
                   </div>
                   <h1 className="text-heading-1 font-bold text-content-primary">Social</h1>
                 </div>

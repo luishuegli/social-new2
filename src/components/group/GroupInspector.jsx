@@ -6,9 +6,13 @@ import { motion } from 'framer-motion';
 import { Users, Check, Calendar, MapPin, Plus } from 'lucide-react';
 import LiquidGlass from '../ui/LiquidGlass';
 import ActivityPlanModal from '../ui/ActivityPlanModal';
+import { useAuth } from '@/app/contexts/AuthContext';
+import { arrayUnion, doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { db } from '@/app/Lib/firebase';
 
 export default function GroupInspector({ group }) {
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const { user } = useAuth();
 
   if (!group) {
     return null;
@@ -18,9 +22,15 @@ export default function GroupInspector({ group }) {
   const displayMembers = group.members?.slice(0, 6) || [];
   const remainingCount = (group.members?.length || 0) - displayMembers.length;
 
-  const handleJoinClick = () => {
-    // TODO: Implement join/leave functionality
-    console.log(`${group.joined ? 'Leave' : 'Join'} group: ${group.name}`);
+  const handleJoinClick = async () => {
+    if (!user || !group?.id) return;
+    try {
+      const groupRef = doc(db, 'groups', group.id);
+      await updateDoc(groupRef, { members: arrayUnion(user.uid) });
+      await setDoc(doc(db, 'groups', group.id, 'members', user.uid), { joinedAt: serverTimestamp() }, { merge: true });
+    } catch (e) {
+      // no-op; rules will enforce permissions
+    }
   };
 
   const handlePlanActivity = () => {
@@ -58,7 +68,7 @@ export default function GroupInspector({ group }) {
                   <div className="flex -space-x-2">
                     {displayMembers.map((member, index) => (
                       <div
-                        key={member.id}
+                        key={member?.id ? String(member.id) : `member-${index}`}
                         className="w-8 h-8 rounded-full border-2 border-background-primary overflow-hidden bg-accent-primary flex items-center justify-center"
                         style={{ zIndex: displayMembers.length - index }}
                       >
@@ -189,6 +199,7 @@ export default function GroupInspector({ group }) {
         isOpen={isModalOpen}
         onClose={handleCloseModal}
         groupName={group.name}
+        groupId={group.id}
       />
     </>
   );

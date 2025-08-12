@@ -1,6 +1,9 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "./contexts/AuthContext";
+import ActivityPlannerFAB from "../components/ui/ActivityPlannerFAB";
+import React from "react";
+import DevIndexesApplier from "@/app/DevIndexesApplier";
 
 export const metadata: Metadata = {
   title: "Social App - Authentication",
@@ -16,7 +19,10 @@ export default function RootLayout({
     <html lang="en" suppressHydrationWarning={true}>
       <body className="font-system antialiased">
         <AuthProvider>
+          {/* Dev-only no-op element that runs a client-side effect */}
+          <DevIndexesApplier />
           {children}
+          <ActivityPlannerFAB />
         </AuthProvider>
       </body>
     </html>

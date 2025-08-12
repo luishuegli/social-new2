@@ -111,6 +111,38 @@ Visit `http://localhost:3000` to see the application.
 
 ---
 
+## 🔐 Local admin credentials (optional)
+
+Some local API routes (e.g., seeding utilities) use Firebase Admin to modify Firestore. Provide a service account in `.env.local` if you want to use them:
+
+```
+FIREBASE_ADMIN_PROJECT_ID=<your_project_id>
+FIREBASE_ADMIN_CLIENT_EMAIL=<svc>@<project>.iam.gserviceaccount.com
+FIREBASE_ADMIN_PRIVATE_KEY="-----BEGIN PRIVATE KEY-----\n...\n-----END PRIVATE KEY-----\n"
+```
+
+Alternatively, install the Google Cloud SDK and run `gcloud auth application-default login` to enable Application Default Credentials on your machine.
+
+---
+
+## ✅ Preflight checklist before going live
+
+- Auth
+  - Enable Google in Firebase Auth and verify `localhost` and prod domain are in Authorized domains
+  - `.env.local` has all `NEXT_PUBLIC_FIREBASE_*` values and matches Firebase project
+- Firestore Rules
+  - Replace dev-relaxed rules with member-checked rules in `firestore.rules` (groups read restricted to members)
+  - Keep chats/messages rules restricted to members
+  - Review `requests`, `posts`, `polls` permissions for least privilege
+- Data
+  - Ensure real users are added to groups via onboarding or invite flow
+  - Remove dev page `dev/add-me-to-groups`
+- Admin
+  - If needed, configure service account via org policy or rely on gcloud ADC on CI/servers
+- Build & Deploy
+  - Remove any mock/test routes, remove console logs, and run full test pass
+
+
 ## 📁 Project Structure
 
 ```

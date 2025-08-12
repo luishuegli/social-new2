@@ -56,7 +56,7 @@ export default function GroupsPage() {
                 Connect with communities and share interests with like-minded people.
               </p>
             </div>
-            <button className="bg-accent-primary text-content-primary px-6 py-3 rounded-card font-semibold hover:bg-opacity-90 transition-all duration-200 flex items-center space-x-2 self-start sm:self-auto">
+             <button className="bg-accent-primary text-content-primary px-6 py-3 rounded-card font-semibold hover:bg-opacity-90 transition-all duration-200 flex items-center space-x-2 self-start sm:self-auto" onClick={() => window.location.href='/groups/create'}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>

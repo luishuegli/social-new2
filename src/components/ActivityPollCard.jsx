@@ -3,12 +3,14 @@
 import React, { useState } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
-import { Users, Calendar, MapPin, Clock } from 'lucide-react';
+import { Users, Calendar, MapPin, Clock, Check } from 'lucide-react';
 import LiquidGlass from './ui/LiquidGlass';
+import { useAuth } from '../app/contexts/AuthContext';
 
 export default function ActivityPollCard({ poll, onVote }) {
   const [selectedOption, setSelectedOption] = useState(null);
-  const [hasVoted, setHasVoted] = useState(false);
+  const [isVoting, setIsVoting] = useState(false);
+  const { user } = useAuth();
 
   const formatDate = (date) => {
     if (!date) return '';
@@ -22,13 +24,25 @@ export default function ActivityPollCard({ poll, onVote }) {
   };
 
   const handleVote = async () => {
-    if (selectedOption === null || hasVoted) return;
+    if (selectedOption === null || !user) return;
     
+    setIsVoting(true);
     try {
-      await onVote?.(poll.id, selectedOption);
-      setHasVoted(true);
+      const optionId = poll.options[selectedOption]?.id;
+      console.log("🗳️ Attempting to vote:", { 
+        pollId: poll.id, 
+        optionId, 
+        userId: user.uid 
+      });
+      
+      await onVote?.(poll.id, optionId, user.uid);
+      console.log("✅ Vote submitted successfully");
     } catch (error) {
       console.error('Failed to vote:', error);
+      // Show user-friendly error message
+      alert(error.message || 'Failed to vote. Please try again.');
+    } finally {
+      setIsVoting(false);
     }
   };
 
@@ -41,6 +55,23 @@ export default function ActivityPollCard({ poll, onVote }) {
     return total > 0 ? Math.round((votes / total) * 100) : 0;
   };
 
+  const hasUserVoted = () => {
+    if (!user) return false;
+    return poll.options.some(option => 
+      option.voters && option.voters.includes(user.uid)
+    );
+  };
+
+  const getUserVotedOption = () => {
+    if (!user) return null;
+    return poll.options.find(option => 
+      option.voters && option.voters.includes(user.uid)
+    );
+  };
+
+  const userVotedOption = getUserVotedOption();
+  const userHasVoted = hasUserVoted();
+
   return (
     <motion.div
       initial={{ opacity: 0, y: 20 }}
@@ -48,26 +79,32 @@ export default function ActivityPollCard({ poll, onVote }) {
       transition={{ type: 'spring', stiffness: 300, damping: 24 }}
     >
       <LiquidGlass className="p-4 mb-4">
+        {/* Voting Status Banner */}
+        {userHasVoted && (
+          <div className="mb-4 p-3 bg-green-500/20 border border-green-400/30 rounded-lg">
+            <div className="flex items-center space-x-2 text-green-400 text-sm">
+              <Check className="w-4 h-4" />
+              <span>You voted for "{userVotedOption?.title}"</span>
+            </div>
+          </div>
+        )}
+
         {/* Group Header */}
         <div className="flex items-center space-x-3 mb-4">
           <div className="w-10 h-10 rounded-full bg-accent-primary flex items-center justify-center overflow-hidden">
-            {poll.group.avatar ? (
-              <Image
-                src={poll.group.avatar}
-                alt={poll.group.name}
-                width={40}
-                height={40}
-                className="w-full h-full object-cover"
-              />
+            {poll.groupName || poll.groupId ? (
+              <span className="text-sm font-semibold text-content-primary">
+                {(poll.groupName || poll.groupId || "G").charAt(0).toUpperCase()}
+              </span>
             ) : (
               <span className="text-sm font-semibold text-content-primary">
-                {poll.group.name.charAt(0).toUpperCase()}
+                G
               </span>
             )}
           </div>
           <div>
             <h3 className="font-semibold text-content-primary">
-              {poll.group.name}
+              {poll.groupName || poll.groupId || "Unknown Group"}
             </h3>
             <p className="text-xs text-content-secondary">Activity Planning</p>
           </div>
@@ -76,7 +113,7 @@ export default function ActivityPollCard({ poll, onVote }) {
         {/* Poll Question */}
         <div className="mb-4">
           <h4 className="text-lg font-bold text-content-primary mb-2 leading-tight">
-            {poll.question}
+            {poll.title}
           </h4>
           {poll.description && (
             <p className="text-sm text-content-secondary leading-relaxed">
@@ -90,23 +127,25 @@ export default function ActivityPollCard({ poll, onVote }) {
           {poll.options.map((option, index) => {
             const isSelected = selectedOption === index;
             const percentage = getVotePercentage(option.votes || 0);
+            const userVotedForThis = option.voters && option.voters.includes(user?.uid);
             
             return (
               <button
                 key={index}
-                onClick={() => !hasVoted && setSelectedOption(index)}
-                disabled={hasVoted}
+                onClick={() => !userHasVoted && setSelectedOption(index)}
+                disabled={userHasVoted}
                 className={`
                   w-full p-3 rounded-xl text-left transition-all duration-200 relative overflow-hidden
-                  ${isSelected && !hasVoted 
+                  ${isSelected && !userHasVoted 
                     ? 'border-2 border-accent-primary bg-accent-primary/10' 
                     : 'border-2 border-border-separator hover:border-accent-primary/50'
                   }
-                  ${hasVoted ? 'cursor-default' : 'cursor-pointer'}
+                  ${userHasVoted ? 'cursor-default' : 'cursor-pointer'}
+                  ${userVotedForThis ? 'border-2 border-green-400 bg-green-400/10' : ''}
                 `}
               >
                 {/* Vote percentage background */}
-                {hasVoted && (
+                {userHasVoted && (
                   <div 
                     className="absolute inset-0 bg-accent-primary/20 transition-all duration-500"
                     style={{ width: `${percentage}%` }}
@@ -115,11 +154,16 @@ export default function ActivityPollCard({ poll, onVote }) {
                 
                 <div className="relative z-10 flex items-center justify-between">
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-content-primary mb-1">
-                      {option.title}
-                    </p>
+                    <div className="flex items-center space-x-2">
+                      <p className="font-medium text-content-primary">
+                        {option.title}
+                      </p>
+                      {userVotedForThis && (
+                        <Check className="w-4 h-4 text-green-400" />
+                      )}
+                    </div>
                     {option.details && (
-                      <div className="flex items-center space-x-4 text-sm text-content-secondary">
+                      <div className="flex items-center space-x-4 text-sm text-content-secondary mt-1">
                         {option.details.date && (
                           <div className="flex items-center space-x-1">
                             <Calendar className="w-3 h-3" />
@@ -142,11 +186,9 @@ export default function ActivityPollCard({ poll, onVote }) {
                     )}
                   </div>
                   
-                  {hasVoted && (
-                    <div className="text-sm font-semibold text-content-primary ml-3">
-                      {percentage}%
-                    </div>
-                  )}
+                  <div className="text-sm font-semibold text-content-primary ml-3">
+                    {userHasVoted ? `${percentage}%` : `${option.votes || 0} votes`}
+                  </div>
                 </div>
               </button>
             );
@@ -160,28 +202,43 @@ export default function ActivityPollCard({ poll, onVote }) {
               <Users className="w-4 h-4" />
               <span>{getTotalVotes()} votes</span>
             </div>
-            {poll.deadline && (
+            {poll.expiresAt && (
               <div className="flex items-center space-x-1">
                 <Clock className="w-4 h-4" />
-                <span>Ends {formatDate(poll.deadline)}</span>
+                <span>Ends {formatDate(poll.expiresAt)}</span>
               </div>
             )}
           </div>
           
-          {!hasVoted && (
+          {!userHasVoted ? (
             <button
               onClick={handleVote}
-              disabled={selectedOption === null}
+              disabled={selectedOption === null || isVoting}
               className={`
-                px-4 py-2 rounded-full font-medium transition-all duration-200
-                ${selectedOption !== null
+                px-4 py-2 rounded-full font-medium transition-all duration-200 flex items-center space-x-2
+                ${selectedOption !== null && !isVoting
                   ? 'bg-accent-primary text-content-primary hover:bg-opacity-90'
                   : 'bg-background-secondary text-content-secondary cursor-not-allowed'
                 }
               `}
             >
-              Vote
+              {isVoting ? (
+                <>
+                  <div className="animate-spin h-4 w-4 border-b-2 border-current rounded-full"></div>
+                  <span>Voting...</span>
+                </>
+              ) : (
+                <>
+                  <Check className="w-4 h-4" />
+                  <span>Vote</span>
+                </>
+              )}
             </button>
+          ) : (
+            <div className="flex items-center space-x-2 text-sm text-green-400">
+              <Check className="w-4 h-4" />
+              <span>Vote recorded</span>
+            </div>
           )}
         </div>
       </LiquidGlass>

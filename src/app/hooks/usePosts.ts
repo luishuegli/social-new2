@@ -1,49 +1,64 @@
 'use client';
 
 import { useState, useEffect, useCallback } from 'react';
-import { mockPosts } from '../utils/mockPosts';
+import { db } from '../Lib/firebase';
+import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
 import { Post } from '../types';
+import { useAuth } from '../contexts/AuthContext';
 
 export function usePosts() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const { user } = useAuth();
 
   useEffect(() => {
-    // Simulate API call
-    const fetchPosts = async () => {
-      try {
-        setLoading(true);
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1000));
-        
-        // Sort by most recent timestamp and map to the Post interface
-        const sortedPosts: Post[] = [...mockPosts].sort((a, b) => 
-          new Date(b.timestamp).getTime() - new Date(a.timestamp).getTime()
-        ).map(post => ({
-          id: post.id,
-          userName: post.author.name,
-          userAvatar: post.author.avatar,
-          timestamp: post.timestamp.toISOString(),
-          content: post.caption,
-          imageUrl: post.media[0]?.url,
-          likes: post.likes,
-          comments: post.comments,
-          isLiked: post.isLiked,
-        }));
-        
-        setPosts(sortedPosts);
-        setError(null);
-      } catch (err) {
-        setError('Failed to load posts');
-        console.error('Error fetching posts:', err);
-      } finally {
-        setLoading(false);
-      }
-    };
+    // If logged out, clear state and stop listening
+    if (!user) {
+      setPosts([]);
+      setLoading(false);
+      return;
+    }
 
-    fetchPosts();
-  }, []);
+    setLoading(true);
+    try {
+      const postsRef = collection(db, 'posts');
+      const q = query(postsRef, orderBy('timestamp', 'desc'));
+      const unsub = onSnapshot(
+        q,
+        (snap) => {
+          const items: Post[] = [];
+          snap.forEach((d) => {
+            const data: any = d.data();
+            items.push({
+              id: d.id,
+              userName: data.authorName || data.authorId || 'User',
+              userAvatar: data.authorAvatar || '',
+              timestamp: data.timestamp?.toDate?.().toISOString?.() || new Date().toISOString(),
+              content: data.description || data.activityTitle || '',
+              imageUrl: data.media?.[0]?.url,
+              likes: data.likes || 0,
+              comments: data.comments || 0,
+              isLiked: false,
+            });
+          });
+          setPosts(items);
+          setError(null);
+          setLoading(false);
+        },
+        (err) => {
+          console.error('Posts listener error:', err);
+          setError('Failed to load posts');
+          setLoading(false);
+        }
+      );
+      return () => unsub();
+    } catch (err) {
+      console.error('Error setting up posts listener:', err);
+      setError('Failed to load posts');
+      setLoading(false);
+    }
+  }, [user]);
 
   const handleLike = useCallback(async (postId: string, isLiked: boolean) => {
     try {

@@ -7,52 +7,9 @@ import { motion, Variants } from 'framer-motion';
 import { Users, Calendar, MapPin } from 'lucide-react';
 import AppLayout from '../../components/AppLayout';
 import LiquidGlass from '@/components/ui/LiquidGlass';
-
-// Mock user data - in a real app this would come from an API
-const getMockUser = (userId: string) => ({
-  id: userId,
-  name: 'Sarah Johnson',
-  avatar: 'https://images.unsplash.com/photo-1494790108755-2616b612b786?w=150&h=150&fit=crop&crop=face',
-  bio: 'Passionate photographer and outdoor enthusiast. Always looking for the next adventure and perfect shot!',
-  location: 'San Francisco, CA',
-  memberSince: '2023-01-15',
-  stats: {
-    groupsCount: 7,
-    activitiesPlanned: 15,
-    activitiesJoined: 32,
-    postsCount: 47
-  },
-  publicGroups: [
-    {
-      id: 'group-1',
-      name: 'Mountain Adventurers',
-      category: 'Outdoor & Adventure',
-      memberCount: 127,
-      role: 'admin'
-    },
-    {
-      id: 'group-3',
-      name: 'Photography Club',
-      category: 'Arts & Culture',
-      memberCount: 156,
-      role: 'member'
-    },
-    {
-      id: 'group-7',
-      name: 'Nature Lovers',
-      category: 'Outdoor & Adventure',
-      memberCount: 89,
-      role: 'moderator'
-    },
-    {
-      id: 'group-8',
-      name: 'Weekend Warriors',
-      category: 'Outdoor & Adventure',
-      memberCount: 201,
-      role: 'member'
-    }
-  ]
-});
+import { useUserProfile } from '@/app/hooks/useUserProfile';
+import { useUserGroups } from '@/app/hooks/useUserGroups';
+import { useUserPosts } from '@/app/hooks/useUserPosts';
 
 // Animation variants
 const containerVariants: Variants = {
@@ -77,7 +34,24 @@ const itemVariants: Variants = {
 export default function UserProfilePage() {
   const params = useParams();
   const userId = params.userId as string;
-  const user = getMockUser(userId);
+  const { profile, counts } = useUserProfile(userId);
+  const { groups } = useUserGroups(userId);
+  const { posts } = useUserPosts(userId);
+  const user = {
+    id: userId,
+    name: profile?.displayName || 'User',
+    avatar: profile?.profilePictureUrl || '',
+    bio: profile?.bio || '',
+    location: '',
+    memberSince: new Date().toISOString(),
+    stats: {
+      groupsCount: counts?.groups || groups.length || 0,
+      activitiesPlanned: profile?.stats?.activitiesPlannedCount || 0,
+      activitiesJoined: 0,
+      postsCount: posts.length || 0,
+    },
+    publicGroups: groups.map(g => ({ id: g.id, name: g.name, category: g.category || 'General', memberCount: g.memberCount || 0, role: 'member' })),
+  };
 
   const formatMemberSince = (date: string) => {
     return new Date(date).toLocaleDateString('en-US', {

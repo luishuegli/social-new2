@@ -1,3 +1,4 @@
+// Deprecated: mock data removed. Keep file to avoid import errors if referenced.
 export const mockConversations = [
   {
     id: 'conv-1',

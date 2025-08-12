@@ -33,7 +33,7 @@ export default function GroupTabs({ activeTab, onTabChange }) {
                 onClick={() => onTabChange(tab.id)}
                 className={`flex flex-col items-center space-y-1 px-4 py-3 rounded-lg transition-all duration-200 ${
                   isActive
-                    ? 'bg-accent-primary text-content-primary'
+                    ? 'bg-white/20 text-white backdrop-blur-sm'
                     : 'text-content-secondary hover:text-content-primary'
                 }`}
               >
