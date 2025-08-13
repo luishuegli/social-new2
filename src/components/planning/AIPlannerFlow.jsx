@@ -9,6 +9,7 @@ import { handleCreatePoll } from '../../lib/pollHandler';
 export default function AIPlannerFlow({ groupId, userId, userName, onPollCreated }) {
   const [currentStep, setCurrentStep] = useState('form'); // 'form', 'review', 'success'
   const [suggestions, setSuggestions] = useState(null);
+  const [reviewSettings, setReviewSettings] = useState({ durationMinutes: 60 });
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState(null);
 
@@ -33,7 +34,8 @@ export default function AIPlannerFlow({ groupId, userId, userName, onPollCreated
       const aiSuggestions = await getAISuggestions(formData, groupId);
       
       if (aiSuggestions && aiSuggestions.length > 0) {
-        setSuggestions(aiSuggestions);
+        setSuggestions({ items: aiSuggestions });
+        setReviewSettings({ durationMinutes: formData.durationMinutes || 60 });
         setCurrentStep('review');
       } else {
         setError('Failed to generate suggestions. Please try again.');
@@ -51,7 +53,7 @@ export default function AIPlannerFlow({ groupId, userId, userName, onPollCreated
     setError(null);
 
     try {
-      const result = await handleCreatePoll(suggestions, groupId, userId, userName);
+      const result = await handleCreatePoll(suggestions.items, groupId, userId, userName, { durationMinutes: reviewSettings.durationMinutes });
       
       if (result.success) {
         setCurrentStep('success');
@@ -140,7 +142,9 @@ export default function AIPlannerFlow({ groupId, userId, userName, onPollCreated
       
       {currentStep === 'review' && suggestions && (
         <AIReviewPoll
-          suggestions={suggestions}
+          suggestions={suggestions.items}
+          durationMinutes={reviewSettings.durationMinutes}
+          onChangeDuration={(v) => setReviewSettings((s) => ({ ...s, durationMinutes: v }))}
           onCreatePoll={handleCreatePollClick}
           onRegenerate={handleRegenerate}
           isCreating={isLoading}

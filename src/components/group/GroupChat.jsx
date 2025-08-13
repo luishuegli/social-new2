@@ -165,7 +165,7 @@ export default function GroupChat({ group }) {
 
   if (loading) {
     return (
-      <LiquidGlass className="h-full flex flex-col p-6 max-h-[80vh]">
+      <LiquidGlass className="flex flex-col p-6 h-[70vh]">
         <div className="flex items-center justify-center h-full">
           <div className="animate-spin h-8 w-8 border-b-2 border-white rounded-full"></div>
           <span className="ml-3 text-white/70">Loading messages...</span>
@@ -176,7 +176,7 @@ export default function GroupChat({ group }) {
 
   if (error) {
     return (
-      <LiquidGlass className="h-full flex flex-col p-6 max-h-[80vh]">
+      <LiquidGlass className="flex flex-col p-6 h-[70vh]">
         <div className="flex items-center justify-center h-full">
           <div className="text-center">
             <p className="text-white/70 mb-4">{error}</p>
@@ -193,7 +193,7 @@ export default function GroupChat({ group }) {
   }
 
   return (
-    <LiquidGlass className="h-full flex flex-col p-6 max-h-[80vh]">
+    <LiquidGlass className="flex flex-col p-6 h-[70vh]">
       {/* Chat Header */}
       <motion.div
         initial={{ opacity: 0, y: -20 }}

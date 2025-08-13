@@ -1,18 +1,17 @@
 'use client';
 
-import React, { useState } from 'react';
+import React from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Users, Check, Calendar, MapPin, Plus } from 'lucide-react';
 import LiquidGlass from '../ui/LiquidGlass';
-import ActivityPlanModal from '../ui/ActivityPlanModal';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { arrayUnion, doc, serverTimestamp, setDoc, updateDoc } from 'firebase/firestore';
+import { arrayUnion, doc, serverTimestamp, setDoc, updateDoc, collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '@/app/Lib/firebase';
 
-export default function GroupInspector({ group }) {
-  const [isModalOpen, setIsModalOpen] = useState(false);
+export default function GroupInspector({ group, onPlanActivity }) {
   const { user } = useAuth();
+  const [plannedActivities, setPlannedActivities] = React.useState([]);
 
   if (!group) {
     return null;
@@ -33,13 +32,22 @@ export default function GroupInspector({ group }) {
     }
   };
 
-  const handlePlanActivity = () => {
-    setIsModalOpen(true);
-  };
-
-  const handleCloseModal = () => {
-    setIsModalOpen(false);
-  };
+  // Listen to planned activities for this group
+  React.useEffect(() => {
+    if (!group?.id) return;
+    const ref = collection(db, 'activities');
+    const unsub = onSnapshot(ref, (snap) => {
+      const items = [];
+      snap.forEach((d) => {
+        const data = d.data();
+        if (data.groupId === group.id && data.status === 'planned') {
+          items.push({ id: d.id, ...data });
+        }
+      });
+      setPlannedActivities(items);
+    });
+    return () => unsub();
+  }, [group?.id]);
 
   return (
     <>
@@ -173,6 +181,51 @@ export default function GroupInspector({ group }) {
             </motion.div>
           )}
 
+          {/* Planned Activities (RSVP) */}
+          {plannedActivities.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ duration: 0.6, ease: "easeOut", delay: 0.12 }}
+            >
+              <LiquidGlass className="p-6">
+                <h2 className="text-lg font-bold text-content-primary mb-3">Planned Activities</h2>
+                <div className="space-y-3">
+                  {plannedActivities.map((a) => {
+                    const joined = (a.participants || []).includes(user?.uid);
+                    return (
+                      <div key={a.id} className="flex items-center justify-between border border-border-separator rounded-lg p-3">
+                        <div>
+                          <div className="text-content-primary font-semibold">{a.title}</div>
+                          <div className="text-content-secondary text-sm">{a.location || ''}</div>
+                        </div>
+                        <div className="flex items-center gap-3">
+                          <div className="flex -space-x-2">
+                            {(a.participants || []).slice(0,5).map((pid, idx) => (
+                              <div key={pid+idx} className="w-7 h-7 rounded-full bg-accent-primary border-2 border-background-primary flex items-center justify-center text-[10px] text-content-primary">{pid.slice(0,2).toUpperCase()}</div>
+                            ))}
+                          </div>
+                          {joined ? (
+                            <span className="px-3 py-2 text-xs rounded-card bg-green-600 text-white">✓ Joined</span>
+                          ) : (
+                            <button
+                              onClick={async () => {
+                                try { await updateDoc(doc(db, 'activities', a.id), { participants: arrayUnion(user.uid) }); } catch {}
+                              }}
+                              className="px-3 py-2 text-xs font-semibold rounded-card bg-accent-primary text-content-primary hover:bg-opacity-80"
+                            >
+                              Join Activity
+                            </button>
+                          )}
+                        </div>
+                      </div>
+                    );
+                  })}
+                </div>
+              </LiquidGlass>
+            </motion.div>
+          )}
+
           {/* PlanActivityButton - Now wrapped in LiquidGlass */}
           <motion.div
             initial={{ opacity: 0, y: 20 }}
@@ -183,7 +236,7 @@ export default function GroupInspector({ group }) {
               <motion.button
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
-                onClick={handlePlanActivity}
+                onClick={onPlanActivity}
                 className="w-full px-6 py-4 bg-accent-primary text-content-primary rounded-lg font-semibold hover:bg-opacity-90 transition-all duration-200 flex items-center justify-center space-x-2"
               >
                 <Plus className="w-5 h-5" />
@@ -193,14 +246,6 @@ export default function GroupInspector({ group }) {
           </motion.div>
         </div>
       </div>
-
-      {/* Activity Plan Modal */}
-      <ActivityPlanModal
-        isOpen={isModalOpen}
-        onClose={handleCloseModal}
-        groupName={group.name}
-        groupId={group.id}
-      />
     </>
   );
 } 

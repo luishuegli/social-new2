@@ -10,7 +10,8 @@ export default function AIPlannerForm({ onGenerateSuggestions }) {
     customActivity: '',
     budget: '$',
     radius: 25,
-    count: 3
+    count: 3,
+    durationMinutes: 60
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -168,6 +169,21 @@ export default function AIPlannerForm({ onGenerateSuggestions }) {
               <span>4</span>
               <span>5</span>
             </div>
+          </div>
+
+          {/* Voting Duration */}
+          <div className="space-y-2">
+            <label className="block text-sm font-medium text-white">
+              Voting Duration (minutes)
+            </label>
+            <input
+              type="number"
+              min={5}
+              max={7 * 24 * 60}
+              value={formData.durationMinutes}
+              onChange={(e) => updateFormData('durationMinutes', Number(e.target.value))}
+              className="w-40 p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent"
+            />
           </div>
 
           {/* Submit Button */}

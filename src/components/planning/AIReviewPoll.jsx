@@ -4,7 +4,7 @@ import React from 'react';
 import LiquidGlass from '../ui/LiquidGlass';
 import { RefreshCw, CheckCircle } from 'lucide-react';
 
-export default function AIReviewPoll({ suggestions, onCreatePoll, onRegenerate, isCreating }) {
+export default function AIReviewPoll({ suggestions, durationMinutes = 60, onChangeDuration, onCreatePoll, onRegenerate, isCreating }) {
   if (!suggestions || suggestions.length === 0) {
     return (
       <LiquidGlass className="p-6 max-w-2xl mx-auto">
@@ -47,6 +47,31 @@ export default function AIReviewPoll({ suggestions, onCreatePoll, onRegenerate, 
               </div>
             </div>
           ))}
+        </div>
+
+        {/* Duration control */}
+        <div className="bg-white/5 border border-white/10 rounded-lg p-4">
+          <div className="flex items-center justify-between">
+            <div>
+              <div className="text-sm text-white font-semibold">Voting Duration</div>
+              <div className="text-xs text-neutral-400">How long should this poll stay open?</div>
+            </div>
+            <div className="flex items-center gap-2">
+              <select
+                value={durationMinutes}
+                onChange={(e) => onChangeDuration?.(Number(e.target.value))}
+                className="p-2 bg-white/10 border border-white/20 rounded-lg text-white"
+              >
+                <option value={30} className="bg-neutral-800 text-white">30 min</option>
+                <option value={60} className="bg-neutral-800 text-white">1 hour</option>
+                <option value={180} className="bg-neutral-800 text-white">3 hours</option>
+                <option value={720} className="bg-neutral-800 text-white">12 hours</option>
+                <option value={1440} className="bg-neutral-800 text-white">24 hours</option>
+                <option value={4320} className="bg-neutral-800 text-white">3 days</option>
+                <option value={10080} className="bg-neutral-800 text-white">7 days</option>
+              </select>
+            </div>
+          </div>
         </div>
 
         {/* Action Buttons */}

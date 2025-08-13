@@ -11,6 +11,7 @@ import {
   signInWithPopup
 } from 'firebase/auth';
 import { auth } from '../Lib/firebase';
+import { useRouter } from 'next/navigation';
 
 interface AuthContextType {
   user: User | null;
@@ -27,6 +28,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
+  const router = useRouter();
 
   useEffect(() => {
     setMounted(true);
@@ -74,6 +76,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const logout = async () => {
     try {
       await signOut(auth);
+      // After logout, send user to sign-in
+      router.push('/');
     } catch (error) {
       console.error('Logout error:', error);
       throw error;

@@ -4,6 +4,7 @@ import React from 'react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
+import { useActivity } from '../contexts/ActivityContext';
 import { 
   Home, 
   Users, 
@@ -20,6 +21,7 @@ interface SidebarProps {
 
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuth();
+  const { activeActivity } = useActivity();
   const pathname = usePathname();
 
   const handleLogout = async () => {
@@ -35,6 +37,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     { icon: MessageCircle, label: 'Action Center', href: '/action-center', badge: 4 },
     { icon: Users, label: 'Groups', href: '/groups', badge: 7 },
     { icon: Calendar, label: 'Calendar', href: '/calendar' },
+    { icon: Calendar, label: 'Activity Mode', href: '/activity-mode' },
   ];
 
   return (
@@ -111,30 +114,36 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
           {/* Quick Actions */}
           <div className="mt-6 sm:mt-8 flex-shrink-0">
-            <button className="w-full flex items-center justify-center space-x-3 liquid-glass text-content-primary px-4 sm:px-6 py-3 sm:py-4 font-semibold rounded-lg transition-all duration-200 hover:bg-opacity-80">
-              <Plus className="w-5 h-5 flex-shrink-0" strokeWidth={2} />
-              <span className="text-body truncate">New Post</span>
-            </button>
+            <Link href={activeActivity ? '/posts/live/create' : '/posts/create'} className="block">
+              <div className={`w-full flex items-center justify-center space-x-3 liquid-glass text-content-primary px-4 sm:px-6 py-3 sm:py-4 font-semibold rounded-lg transition-all duration-200 hover:bg-opacity-80 ${activeActivity ? 'ring-2 ring-green-400/60' : ''}`}>
+                <Plus className="w-5 h-5 flex-shrink-0" strokeWidth={2} />
+                <span className="text-body truncate">New Post</span>
+              </div>
+            </Link>
           </div>
 
           {/* User Info */}
-          <div className="liquid-glass p-4 sm:p-6 mt-4 sm:mt-6 flex-shrink-0">
-            <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
-              <div className="w-10 h-10 sm:w-12 sm:h-12 bg-accent-primary flex items-center justify-center rounded-full flex-shrink-0">
-                <span className="text-content-primary font-semibold text-body">
-                  {user?.email?.charAt(0).toUpperCase() || 'U'}
-                </span>
+          {user && (
+            <Link href={`/profile/${user.uid}`} className="block">
+              <div className="liquid-glass p-4 sm:p-6 mt-4 sm:mt-6 flex-shrink-0">
+                <div className="flex items-center space-x-3 sm:space-x-4 min-w-0">
+                  <div className="w-10 h-10 sm:w-12 sm:h-12 bg-accent-primary flex items-center justify-center rounded-full flex-shrink-0">
+                    <span className="text-content-primary font-semibold text-body">
+                      {user?.email?.charAt(0).toUpperCase() || 'U'}
+                    </span>
+                  </div>
+                  <div className="flex-1 min-w-0">
+                    <p className="text-body font-semibold text-content-primary truncate">
+                      {user?.displayName || user?.email || 'User'}
+                    </p>
+                    <p className="text-caption text-content-secondary truncate">
+                      {user?.email}
+                    </p>
+                  </div>
+                </div>
               </div>
-              <div className="flex-1 min-w-0">
-                <p className="text-body font-semibold text-content-primary truncate">
-                  {user?.displayName || user?.email || 'User'}
-                </p>
-                <p className="text-caption text-content-secondary truncate">
-                  {user?.email}
-                </p>
-              </div>
-            </div>
-          </div>
+            </Link>
+          )}
 
           {/* Logout */}
           <div className="mt-4 sm:mt-6 flex-shrink-0">

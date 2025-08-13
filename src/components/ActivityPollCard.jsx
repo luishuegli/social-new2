@@ -4,6 +4,8 @@ import React, { useState } from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Users, Calendar, MapPin, Clock, Check } from 'lucide-react';
+import { db } from '@/app/Lib/firebase';
+import { doc, updateDoc, collection, addDoc } from 'firebase/firestore';
 import LiquidGlass from './ui/LiquidGlass';
 import { useAuth } from '../app/contexts/AuthContext';
 
@@ -11,6 +13,11 @@ export default function ActivityPollCard({ poll, onVote }) {
   const [selectedOption, setSelectedOption] = useState(null);
   const [isVoting, setIsVoting] = useState(false);
   const { user } = useAuth();
+  const handleFinalize = async () => {
+    if (!user || user.uid !== poll.createdBy) return;
+    await fetch('/api/finalize-poll', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ pollId: poll.id }) });
+    alert('Activity created from winning option.');
+  };
 
   const formatDate = (date) => {
     if (!date) return '';
@@ -202,14 +209,18 @@ export default function ActivityPollCard({ poll, onVote }) {
               <Users className="w-4 h-4" />
               <span>{getTotalVotes()} votes</span>
             </div>
-            {poll.expiresAt && (
+          {poll.expiresAt && (
               <div className="flex items-center space-x-1">
                 <Clock className="w-4 h-4" />
                 <span>Ends {formatDate(poll.expiresAt)}</span>
               </div>
             )}
+          {poll.status === 'active' && poll.expiresAt && new Date(poll.expiresAt).getTime() < Date.now() && user?.uid === poll.createdBy && (
+            <button onClick={handleFinalize} className="px-3 py-1 rounded-full bg-yellow-500/20 text-yellow-400 border border-yellow-400/40">Finalize (time elapsed)</button>
+          )}
           </div>
           
+          <div className="flex items-center space-x-2">
           {!userHasVoted ? (
             <button
               onClick={handleVote}
@@ -240,6 +251,15 @@ export default function ActivityPollCard({ poll, onVote }) {
               <span>Vote recorded</span>
             </div>
           )}
+          {poll.status !== 'closed' && user?.uid === poll.createdBy && (
+            <button
+              onClick={handleFinalize}
+              className="px-4 py-2 rounded-full font-medium bg-green-600 text-white hover:bg-green-700"
+            >
+              Choose Winning Activity
+            </button>
+          )}
+          </div>
         </div>
       </LiquidGlass>
     </motion.div>

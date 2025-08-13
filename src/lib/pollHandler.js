@@ -2,7 +2,7 @@
 import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
 import { db } from '../app/Lib/firebase';
 
-export async function handleCreatePoll(suggestions, groupId, creatorId, creatorName) {
+export async function handleCreatePoll(suggestions, groupId, creatorId, creatorName, options = {}) {
   console.log('🚀 handleCreatePoll function called!');
   try {
     // 1. Format suggestions into poll options
@@ -17,6 +17,7 @@ export async function handleCreatePoll(suggestions, groupId, creatorId, creatorN
     }));
 
     // 2. Create the poll object
+    const durationMinutes = Number(options.durationMinutes || 60);
     const pollData = {
       title: 'What should we do next?',
       description: 'AI-generated activity suggestions for our group',
@@ -26,8 +27,8 @@ export async function handleCreatePoll(suggestions, groupId, creatorId, creatorN
       createdBy: creatorId,
       createdByName: creatorName,
       createdAt: serverTimestamp(),
-      expiresAt: null, // No expiration for now
-      isActive: true,
+      expiresAt: Date.now() + durationMinutes * 60 * 1000,
+      status: 'active',
       type: 'ai_activity_suggestions',
       totalVotes: 0
     };

@@ -10,6 +10,7 @@ export default function GroupTabs({ activeTab, onTabChange }) {
     { id: 'chat', label: 'Chat', icon: MessageCircle },
     { id: 'plan', label: 'Plan Activity', icon: Calendar },
     { id: 'posts', label: 'Posts', icon: Image },
+    { id: 'activities', label: 'Activities', icon: Calendar },
     { id: 'members', label: 'Members', icon: Users }
   ];
 

@@ -11,7 +11,8 @@ export default function ManualPollCreator({ onClose, groupId = 'group-6' }) {
     description: '',
     options: [
       { id: 1, title: '', description: '', imageUrl: '', imageFile: null }
-    ]
+    ],
+    durationMinutes: 60
   });
 
   const [isLoading, setIsLoading] = useState(false);
@@ -89,7 +90,10 @@ export default function ManualPollCreator({ onClose, groupId = 'group-6' }) {
           })),
           groupId: groupId,
           userId: 'current-user', // TODO: Get from auth context
-          userName: 'Current User' // TODO: Get from auth context
+          userName: 'Current User', // TODO: Get from auth context
+          // New fields for time limit
+          status: 'active',
+          expiresAt: Date.now() + pollData.durationMinutes * 60 * 1000
         })
       });
 
@@ -152,6 +156,18 @@ export default function ManualPollCreator({ onClose, groupId = 'group-6' }) {
 
         {/* Poll Options */}
         <div className="space-y-4">
+          {/* Voting duration */}
+          <div>
+            <label className="block text-sm font-medium text-white mb-1">Voting Duration (minutes)</label>
+            <input
+              type="number"
+              min={5}
+              max={7 * 24 * 60}
+              value={pollData.durationMinutes}
+              onChange={(e) => setPollData(prev => ({ ...prev, durationMinutes: Number(e.target.value) }))}
+              className="w-40 p-2 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent text-sm"
+            />
+          </div>
           <div className="flex items-center justify-between">
             <label className="block text-sm font-medium text-white">
               Poll Options

@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import { AuthProvider } from "./contexts/AuthContext";
+import { ActivityProvider } from "./contexts/ActivityContext";
+import ActivityBar from "./components/ActivityBar";
 import ActivityPlannerFAB from "../components/ui/ActivityPlannerFAB";
 import React from "react";
 import DevIndexesApplier from "@/app/DevIndexesApplier";
@@ -17,12 +19,15 @@ export default function RootLayout({
 }>) {
   return (
     <html lang="en" suppressHydrationWarning={true}>
-      <body className="font-system antialiased">
+      <body className="font-system antialiased has-mesh-gradient">
         <AuthProvider>
-          {/* Dev-only no-op element that runs a client-side effect */}
-          <DevIndexesApplier />
-          {children}
-          <ActivityPlannerFAB />
+          <ActivityProvider>
+            {/* Dev-only no-op element that runs a client-side effect */}
+            <DevIndexesApplier />
+            {children}
+            <ActivityPlannerFAB />
+            <ActivityBar />
+          </ActivityProvider>
         </AuthProvider>
       </body>
     </html>

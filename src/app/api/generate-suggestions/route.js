@@ -5,7 +5,7 @@ const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { activityType, budget, radius, groupSize, suggestionCount = 3, lat, lng, location } = body;
+    const { prompt, activityType, budget, radius, groupSize, suggestionCount = 3, lat, lng, location } = body;
     
     console.log('🤖 Generating suggestions:', { activityType, budget, radius, groupSize, suggestionCount, lat, lng, location });
 
@@ -18,6 +18,7 @@ export async function POST(request) {
 
     // Generate suggestions based on the count requested
     const suggestions = await generateActivitySuggestions({
+      prompt,
       activityType,
       budget,
       radius,
@@ -95,8 +96,10 @@ function isLocationOriented(activity) {
   return keywords.some(k => a.includes(k));
 }
 
-async function generateActivitySuggestions({ activityType, budget, radius, count = 3, lat, lng, location }) {
-  const normalized = (activityType || '').trim();
+async function generateActivitySuggestions({ prompt, activityType, budget, radius, count = 3, lat, lng, location }) {
+  // If the user added a natural language prompt, prefer it for text search,
+  // otherwise fall back to the structured activityType → Places type mapping.
+  const normalized = (prompt || activityType || '').trim();
   const includedType = mapActivityToPlaceType(normalized);
 
   // Build request for Places API (New)
@@ -231,7 +234,11 @@ async function generateActivitySuggestions({ activityType, budget, radius, count
       rating: place.rating || 0,
       priceLevel: place.priceLevel ? (priceMapNew[place.priceLevel] || 'Unknown') : 'Unknown',
       distance: 0,
-      placeId: place.id
+      placeId: place.id,
+      address: place.formattedAddress || '',
+      lat: place.location?.latitude ?? null,
+      lng: place.location?.longitude ?? null,
+      googleMapsUri: place.googleMapsUri || null,
     };
   });
 

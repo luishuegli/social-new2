@@ -85,6 +85,31 @@ service cloud.firestore {
       allow delete: if isAuthenticated() && 
         resource.data.createdBy == request.auth.uid;
     }
+
+    // Activities collection for RSVP and Activity Mode
+    match /activities/{activityId} {
+      allow read: if isAuthenticated();
+      // Only creator can create a planned activity
+      allow create: if isAuthenticated() && request.resource.data.creatorId == request.auth.uid;
+
+      // Allow RSVP and status transitions
+      allow update: if isAuthenticated() && (
+        // RSVP join: participants grows by exactly one and includes caller
+        (
+          request.resource.data.participants.size() == resource.data.participants.size() + 1 &&
+          request.auth.uid in request.resource.data.participants &&
+          request.resource.data.diff(resource.data).changedKeys().hasOnly(['participants'])
+        ) ||
+        // Status change to active/completed by creator or participant
+        (
+          request.resource.data.diff(resource.data).changedKeys().hasOnly(['status']) &&
+          (request.auth.uid == resource.data.creatorId || request.auth.uid in resource.data.participants) &&
+          (request.resource.data.status in ['active', 'completed'])
+        )
+      );
+
+      allow delete: if isAuthenticated() && request.auth.uid == resource.data.creatorId;
+    }
     
     match /activitySuggestions/{suggestionId} {
       allow read: if isAuthenticated();
@@ -95,6 +120,12 @@ service cloud.firestore {
     match /voteHistory/{voteId} {
       allow read, write: if isAuthenticated() && 
         request.auth.uid == resource.data.userId;
+    }
+
+    // AI voting history for activity suggestions (client writes)
+    match /ai_vote_history/{voteId} {
+      allow read: if isAuthenticated();
+      allow create: if isAuthenticated() && request.auth.uid == request.resource.data.userId;
     }
 
     // Requests (invites/joins)

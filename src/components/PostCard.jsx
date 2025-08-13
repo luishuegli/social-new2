@@ -1,7 +1,7 @@
 // src/components/PostCard.jsx
 'use client';
 
-import React from 'react';
+import React, { useState } from 'react';
 import Image from 'next/image';
 import { Heart, MessageCircle } from 'lucide-react';
 
@@ -29,21 +29,14 @@ export default function PostCard({ post /*: Post*/ }) {
       
       {/* 2. The Opaque Image Section */}
       {post.imageUrl && (
-        <div className="relative w-full aspect-[4/3] post-image">
-          <Image
-            src={post.imageUrl}
-            alt={post.content || 'Post image'}
-            layout="fill"
-            objectFit="cover"
-            className="post-image"
-          />
-        </div>
+        <ImageContainer src={post.imageUrl} alt={post.content || 'Post image'} fallbackSeed={post.id} />
       )}
 
       {/* 3. The Denser Liquid Glass Text Section */}
       <div className="liquid-glass-dense p-4 flex flex-col flex-grow">
-        {/* Author Info */}
-        <div className="flex items-center mb-3">
+        {/* Author Info + Authenticity */}
+        <div className="flex items-center mb-3 justify-between">
+          <div className="flex items-center">
           {post.userAvatar && (
                   <Image
                     src={post.userAvatar}
@@ -57,6 +50,13 @@ export default function PostCard({ post /*: Post*/ }) {
             <p className="font-bold text-white">{post.userName}</p>
             <p className="text-xs text-neutral-400">{post.timestamp}</p>
           </div>
+          </div>
+          {/* Authenticity label */}
+          {post.authenticityType && (
+            <span className="text-xs px-2 py-1 rounded-full bg-white/10 text-white/80 border border-white/15">
+              {post.authenticityType}
+            </span>
+          )}
         </div>
 
         {/* Post Content */}
@@ -76,6 +76,22 @@ export default function PostCard({ post /*: Post*/ }) {
             </div>
         </div>
       </div>
+    </div>
+  );
+}
+
+function ImageContainer({ src, alt, fallbackSeed }) {
+  const [error, setError] = useState(false);
+  const resolvedSrc = error ? `https://picsum.photos/seed/${fallbackSeed}/800/600` : src;
+  return (
+    <div className="relative w-full aspect-[4/3] overflow-hidden">
+      {/* eslint-disable-next-line @next/next/no-img-element */}
+      <img
+        src={resolvedSrc}
+        alt={alt}
+        className="w-full h-full object-cover block"
+        onError={() => setError(true)}
+      />
     </div>
   );
 }

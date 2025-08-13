@@ -10,6 +10,8 @@ import LiquidGlass from '@/components/ui/LiquidGlass';
 import { useUserProfile } from '@/app/hooks/useUserProfile';
 import { useUserGroups } from '@/app/hooks/useUserGroups';
 import { useUserPosts } from '@/app/hooks/useUserPosts';
+import GroupCard from '@/components/ui/GroupCard';
+import PostCard from '@/components/PostCard';
 
 // Animation variants
 const containerVariants: Variants = {
@@ -79,6 +81,8 @@ export default function UserProfilePage() {
     }
   };
 
+  const [activeTab, setActiveTab] = React.useState<'portfolio' | 'groups'>('portfolio');
+
   return (
     <AppLayout>
       <div className="w-full max-w-4xl mx-auto">
@@ -146,75 +150,60 @@ export default function UserProfilePage() {
             </LiquidGlass>
           </motion.div>
 
-          {/* Stats Cards */}
+          {/* Tabs */}
           <motion.div variants={itemVariants} className="mb-6">
-            <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-              <LiquidGlass className="p-4 text-center">
-                <div className="text-2xl font-bold text-content-primary mb-1">
-                  {user.stats.groupsCount}
-                </div>
-                <div className="text-sm text-content-secondary">Groups</div>
-              </LiquidGlass>
-              
-              <LiquidGlass className="p-4 text-center">
-                <div className="text-2xl font-bold text-content-primary mb-1">
-                  {user.stats.activitiesPlanned}
-                </div>
-                <div className="text-sm text-content-secondary">Planned</div>
-              </LiquidGlass>
-              
-              <LiquidGlass className="p-4 text-center">
-                <div className="text-2xl font-bold text-content-primary mb-1">
-                  {user.stats.activitiesJoined}
-                </div>
-                <div className="text-sm text-content-secondary">Joined</div>
-              </LiquidGlass>
-              
-              <LiquidGlass className="p-4 text-center">
-                <div className="text-2xl font-bold text-content-primary mb-1">
-                  {user.stats.postsCount}
-                </div>
-                <div className="text-sm text-content-secondary">Posts</div>
-              </LiquidGlass>
-            </div>
+            <LiquidGlass className="p-2">
+              <div className="flex bg-white/10 backdrop-blur-sm rounded-lg p-1">
+                <button
+                  onClick={() => setActiveTab('portfolio')}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+                    activeTab === 'portfolio' ? 'bg-white/20 text-white' : 'text-white/70 hover:text-white'
+                  }`}
+                >
+                  Portfolio
+                </button>
+                <button
+                  onClick={() => setActiveTab('groups')}
+                  className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
+                    activeTab === 'groups' ? 'bg-white/20 text-white' : 'text-white/70 hover:text-white'
+                  }`}
+                >
+                  Groups
+                </button>
+              </div>
+            </LiquidGlass>
           </motion.div>
 
-          {/* Public Groups */}
+          {/* Tab Content */}
           <motion.div variants={itemVariants}>
-            <LiquidGlass className="p-6">
-              <h2 className="text-xl font-bold text-content-primary mb-4">
-                Public Groups
-              </h2>
-              
-              {user.publicGroups.length === 0 ? (
-                <div className="text-center py-8">
-                  <Users className="w-12 h-12 text-content-secondary mx-auto mb-3" />
-                  <p className="text-content-secondary">No public groups to display</p>
-                </div>
-              ) : (
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  {user.publicGroups.map((group) => (
-                    <LiquidGlass key={group.id} className="p-4">
-                      <div className="flex items-center justify-between mb-3">
-                        <h3 className="font-semibold text-content-primary">
-                          {group.name}
-                        </h3>
-                        {getRoleBadge(group.role)}
-                      </div>
-                      
-                      <p className="text-sm text-content-secondary mb-2">
-                        {group.category}
-                      </p>
-                      
-                      <div className="flex items-center space-x-1 text-sm text-content-secondary">
-                        <Users className="w-4 h-4" />
-                        <span>{group.memberCount} members</span>
-                      </div>
-                    </LiquidGlass>
-                  ))}
-                </div>
-              )}
-            </LiquidGlass>
+            {activeTab === 'portfolio' ? (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {posts.map((p: any) => (
+                  <PostCard key={p.id} post={{
+                    id: p.id,
+                    imageUrl: p.imageUrl,
+                    userAvatar: user.avatar,
+                    userName: user.name,
+                    timestamp: new Date().toLocaleString(),
+                    content: (p as any).description || (p as any).activityTitle || '',
+                    likes: p.likes || 0,
+                    comments: p.comments || 0,
+                  }} />
+                ))}
+                {posts.length === 0 && (
+                  <LiquidGlass className="p-6 text-center text-content-secondary">No posts yet.</LiquidGlass>
+                )}
+              </div>
+            ) : (
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                {groups.map((g) => (
+                  <GroupCard key={g.id} group={g} />
+                ))}
+                {groups.length === 0 && (
+                  <LiquidGlass className="p-6 text-center text-content-secondary">No groups yet.</LiquidGlass>
+                )}
+              </div>
+            )}
           </motion.div>
         </motion.div>
       </div>

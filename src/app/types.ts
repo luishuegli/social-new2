@@ -60,6 +60,11 @@ export interface Post {
   likes: number;
   comments: number;
   isLiked: boolean;
+  // Feed metadata
+  postType?: 'Collaborative' | 'Individual';
+  authenticityType?: 'Live Post' | 'Later Post';
+  groupName?: string;
+  participants?: Array<{ name?: string; avatarUrl?: string }>;
 }
 
 // Conversation types

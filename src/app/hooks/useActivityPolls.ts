@@ -55,8 +55,10 @@ export function useActivityPolls() {
           const pollsData: ActivityPoll[] = [];
           snapshot.forEach((doc) => {
             const data = doc.data();
-            // Only include active polls
-            if (data.isActive === true) {
+            // Only include active polls.
+            // Back-compat: some polls used `isActive: true`; new polls use `status: 'active'`.
+            const isActive = (data?.status ? data.status === 'active' : data?.isActive === true || data?.status === undefined);
+            if (isActive) {
               pollsData.push({
                 id: doc.id,
                 ...data
@@ -170,6 +172,17 @@ export function useActivityPolls() {
       // Record vote history for AI suggestions
       console.log('📊 Recording vote history...');
       await recordVoteHistory(pollId, selectedOption.title, userId, poll.groupId);
+
+      // Update aggregated preferences via server (Admin)
+      try {
+        await fetch('/api/update-preferences', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ groupId: poll.groupId, selectedOption: selectedOption.title, userId })
+        });
+      } catch (e) {
+        console.warn('⚠️ Failed to update preferences (non-blocking):', e);
+      }
 
       console.log('✅ Vote submitted successfully');
     } catch (err: any) {

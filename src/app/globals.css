@@ -56,8 +56,6 @@
 
 .has-mesh-gradient {
   position: relative; /* Establishes a positioning context */
-  background-color: #404040; /* Much Lighter Charcoal Grey */
-  overflow: hidden; /* Prevents blobs from spilling out */
 }
 
 /* Create a background layer that sits behind everything */
@@ -71,7 +69,7 @@
   background: 
     radial-gradient(circle at 20% 20%, rgba(88, 86, 214, 0.3) 0%, transparent 50%),
     radial-gradient(circle at 80% 80%, rgba(0, 122, 255, 0.2) 0%, transparent 50%);
-  z-index: -10; /* Far behind everything */
+  z-index: -2; /* Layer 1: Static Background */
   pointer-events: none; /* Don't interfere with interactions */
 }
 
@@ -87,7 +85,7 @@
   border-radius: 50%;
   filter: blur(100px); /* Less blur */
   animation: gentle-float 20s infinite ease-in-out;
-  z-index: -5; /* Behind content but above fixed background */
+  z-index: -1; /* Layer 2: Animated Blobs */
   pointer-events: none;
 }
 
@@ -108,17 +106,14 @@
 }
 
 /* Ensure all images and content have proper stacking */
-img, .liquid-glass, .liquid-glass-dense {
+img, .liquid-glass, .liquid-glass-dense, .post-image {
   position: relative;
   z-index: 1;
 }
 
 /* Special rule for post card images to be completely opaque */
-.post-image {
-  position: relative;
-  z-index: 10;
-  background-color: #000; /* Solid black background as fallback */
-}
+/* opaque image wrapper stays above backgrounds but does not need extreme z */
+.post-image { background-color: #000; }
 
 /* Custom slider styling for AI Planner */
 .slider::-webkit-slider-thumb {
@@ -145,9 +140,12 @@ img, .liquid-glass, .liquid-glass-dense {
 /* Ensure all foreground content sits above the gradient */
 /* You may need to apply a `position: relative; z-index: 1;` to your direct child elements of the layout if they don't appear */
 
+html {
+  background-color: #0A0A0A;
+}
+
 /* Global Styles */
 body {
-  background-color: #0A0A0A;
   color: #FFFFFF;
   font-family: system-ui, -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Helvetica, Arial, sans-serif;
   line-height: 1.5;
