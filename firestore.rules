@@ -134,5 +134,13 @@ service cloud.firestore {
       allow create: if isAuthenticated();
       allow update, delete: if isAuthenticated();
     }
+
+    // User connections (two-party relationships)
+    match /connections/{connectionId} {
+      // Each doc should have `members: [uidA, uidB]`
+      allow read: if isAuthenticated() && request.auth.uid in resource.data.members;
+      allow create: if isAuthenticated() && request.auth.uid in request.resource.data.members;
+      allow update, delete: if isAuthenticated() && request.auth.uid in resource.data.members;
+    }
   }
 }

@@ -12,6 +12,7 @@ export async function GET() {
       posts: { read: false, write: false },
       users: { read: false, write: false },
       ai_vote_history: { read: false, write: false },
+      connections: { read: false, write: false },
       test: { read: false, write: false }
     };
     
@@ -60,6 +61,13 @@ export async function GET() {
     } catch (error) {
       console.error('❌ Cannot read from ai_vote_history:', error.message);
     }
+    try {
+      const conRef = collection(db, 'connections');
+      await getDocs(conRef);
+      results.connections.read = true;
+    } catch (e) {
+      console.error('❌ Cannot read from connections:', e.message);
+    }
     
     // Test writing to collections
     try {
@@ -88,6 +96,13 @@ export async function GET() {
       console.log('✅ Can write to ai_vote_history collection');
     } catch (error) {
       console.error('❌ Cannot write to ai_vote_history:', error.message);
+    }
+    try {
+      const conRef = collection(db, 'connections');
+      await addDoc(conRef, { members: ['test', 'other'], createdAt: serverTimestamp() });
+      results.connections.write = true;
+    } catch (e) {
+      console.error('❌ Cannot write to connections:', e.message);
     }
     
     console.log('📊 Permission test results:', results);
