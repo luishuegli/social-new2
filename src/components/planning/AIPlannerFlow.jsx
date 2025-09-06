@@ -117,7 +117,7 @@ export default function AIPlannerFlow({ groupId, userId, userName, onPollCreated
           <div className="space-y-3">
             <button
               onClick={handleCloseModal}
-              className="w-full px-6 py-3 bg-accent-primary text-white rounded-lg hover:bg-accent-primary/90 transition-colors"
+              className="w-full px-6 py-3 bg-white/10 text-white rounded-lg hover:bg-white/20 backdrop-blur-sm transition-colors"
             >
               Close
             </button>

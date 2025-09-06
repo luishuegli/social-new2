@@ -87,8 +87,8 @@ const ChatWindow = ({ messages = [], currentUser, onSendMessage }) => {
                 <div className={`${isOwnMessage ? 'text-right' : 'text-left'}`}>
                   <div className={`inline-block p-3 rounded-lg ${
                     isOwnMessage 
-                      ? 'bg-white/20 text-white backdrop-blur-sm' 
-                      : 'bg-white/10 text-white backdrop-blur-sm'
+                      ? 'bg-[rgba(255,255,255,0.16)] text-white backdrop-blur-sm' 
+                      : 'bg-[rgba(255,255,255,0.12)] text-white backdrop-blur-sm'
                   }`}>
                     <p className="text-sm">{message.content}</p>
                   </div>

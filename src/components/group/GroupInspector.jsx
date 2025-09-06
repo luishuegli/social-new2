@@ -5,13 +5,17 @@ import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Users, Check, Calendar, MapPin, Plus } from 'lucide-react';
 import LiquidGlass from '../ui/LiquidGlass';
+import MembersModal from '../ui/MembersModal';
 import { useAuth } from '@/app/contexts/AuthContext';
-import { arrayUnion, doc, serverTimestamp, setDoc, updateDoc, collection, onSnapshot, query, where } from 'firebase/firestore';
+import { arrayUnion, arrayRemove, doc, serverTimestamp, setDoc, updateDoc, collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '@/app/Lib/firebase';
 
 export default function GroupInspector({ group, onPlanActivity }) {
   const { user } = useAuth();
   const [plannedActivities, setPlannedActivities] = React.useState([]);
+  const [nextActivityLive, setNextActivityLive] = React.useState(null);
+  const [busyActivityId, setBusyActivityId] = React.useState(null);
+  const [isMembersOpen, setIsMembersOpen] = React.useState(false);
 
   if (!group) {
     return null;
@@ -49,6 +53,68 @@ export default function GroupInspector({ group, onPlanActivity }) {
     return () => unsub();
   }, [group?.id]);
 
+  // Live-sync the "Up Next" activity by id from activities collection (for participants)
+  React.useEffect(() => {
+    if (!group?.nextActivity?.id) {
+      setNextActivityLive(null);
+      return;
+    }
+    const unsub = onSnapshot(doc(db, 'activities', group.nextActivity.id), (snap) => {
+      if (snap.exists()) setNextActivityLive({ id: snap.id, ...snap.data() });
+    }, () => setNextActivityLive(null));
+    return () => unsub();
+  }, [group?.nextActivity?.id]);
+
+  // Toggle RSVP helper with optimistic UI for the Up Next card
+  const toggleUpNextRsvp = async (isJoined) => {
+    if (!user?.uid || !group?.nextActivity?.id) return;
+    const activityId = group.nextActivity.id;
+    const currentParticipants = (nextActivityLive?.participants || group.nextActivity.participants) || [];
+    const optimisticParticipants = isJoined
+      ? currentParticipants.filter((pid) => pid !== user.uid)
+      : [...currentParticipants, user.uid];
+
+    // Optimistic update
+    setBusyActivityId(activityId);
+    setNextActivityLive({ ...(nextActivityLive || { id: activityId }), participants: optimisticParticipants });
+
+    try {
+      await updateDoc(doc(db, 'activities', activityId), {
+        participants: isJoined ? arrayRemove(user.uid) : arrayUnion(user.uid),
+      });
+    } catch (e) {
+      // Revert on failure
+      setNextActivityLive({ ...(nextActivityLive || { id: activityId }), participants: currentParticipants });
+    } finally {
+      setBusyActivityId(null);
+    }
+  };
+
+  // Toggle RSVP in the Planned Activities list with optimistic UI
+  const togglePlannedRsvp = async (activity, isJoined) => {
+    if (!user?.uid || !activity?.id) return;
+    const activityId = activity.id;
+    const currentParticipants = activity.participants || [];
+    const optimisticParticipants = isJoined
+      ? currentParticipants.filter((pid) => pid !== user.uid)
+      : [...currentParticipants, user.uid];
+
+    // Optimistic update
+    setBusyActivityId(activityId);
+    setPlannedActivities((prev) => prev.map((a) => a.id === activityId ? { ...a, participants: optimisticParticipants } : a));
+
+    try {
+      await updateDoc(doc(db, 'activities', activityId), {
+        participants: isJoined ? arrayRemove(user.uid) : arrayUnion(user.uid),
+      });
+    } catch (e) {
+      // Revert on failure
+      setPlannedActivities((prev) => prev.map((a) => a.id === activityId ? { ...a, participants: currentParticipants } : a));
+    } finally {
+      setBusyActivityId(null);
+    }
+  };
+
   return (
     <>
       <div className="sticky top-6">
@@ -73,11 +139,17 @@ export default function GroupInspector({ group, onPlanActivity }) {
               {/* Member Avatars and Count */}
               <div className="flex items-center justify-between">
                 <div className="flex items-center space-x-3">
-                  <div className="flex -space-x-2">
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsMembersOpen(true); }}
+                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    className="flex -space-x-2"
+                    aria-label="View members"
+                  >
                     {displayMembers.map((member, index) => (
                       <div
                         key={member?.id ? String(member.id) : `member-${index}`}
-                        className="w-8 h-8 rounded-full border-2 border-background-primary overflow-hidden bg-accent-primary flex items-center justify-center"
+                        className="w-8 h-8 rounded-full border-2 border-background-primary overflow-hidden bg-background-secondary flex items-center justify-center"
                         style={{ zIndex: displayMembers.length - index }}
                       >
                         {member.avatarUrl ? (
@@ -102,13 +174,19 @@ export default function GroupInspector({ group, onPlanActivity }) {
                         </span>
                       </div>
                     )}
-                  </div>
-                  <div className="flex items-center space-x-1">
+                  </button>
+                  <button
+                    type="button"
+                    onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsMembersOpen(true); }}
+                    onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                    className="flex items-center space-x-1 px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10"
+                    aria-label="View members"
+                  >
                     <Users className="w-4 h-4 text-content-secondary" />
                     <span className="text-xs text-content-secondary">
                       {group.memberCount || group.members?.length || 0}
                     </span>
-                  </div>
+                  </button>
                 </div>
 
                 {/* Join/Joined Button */}
@@ -118,14 +196,14 @@ export default function GroupInspector({ group, onPlanActivity }) {
                   onClick={handleJoinClick}
                   className={`px-4 py-2 rounded-lg font-semibold text-xs transition-all duration-200 flex items-center space-x-1 ${
                     group.joined
-                      ? 'bg-content-secondary text-content-primary hover:bg-opacity-80'
-                      : 'bg-accent-primary text-content-primary hover:bg-opacity-90'
+                      ? 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm'
+                      : 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm'
                   }`}
                 >
                   {group.joined ? (
                     <>
                       <Check className="w-3 h-3" />
-                      <span>✓ Member</span>
+                      <span>Member</span>
                     </>
                   ) : (
                     <>
@@ -176,6 +254,39 @@ export default function GroupInspector({ group, onPlanActivity }) {
                       </div>
                     )}
                   </div>
+
+                  {/* Who's coming (participants) */}
+                  {Array.isArray((nextActivityLive?.participants || group.nextActivity.participants)) && (
+                    <div className="flex items-center justify-between mt-2">
+                      <div className="flex -space-x-2">
+                        {(nextActivityLive?.participants || group.nextActivity.participants).slice(0,6).map((pid, idx) => (
+                          <div key={pid+idx} className="w-7 h-7 rounded-full bg-background-secondary border-2 border-background-primary flex items-center justify-center text-[10px] text-content-primary">{pid.slice(0,2).toUpperCase()}</div>
+                        ))}
+                        {(nextActivityLive?.participants || group.nextActivity.participants).length > 6 && (
+                          <div className="w-7 h-7 rounded-full bg-content-secondary border-2 border-background-primary flex items-center justify-center text-[10px] text-content-primary">+{(nextActivityLive?.participants || group.nextActivity.participants).length - 6}</div>
+                        )}
+                      </div>
+                      {user?.uid && (
+                        ((nextActivityLive?.participants || group.nextActivity.participants).includes(user.uid)) ? (
+                          <button
+                            onClick={() => toggleUpNextRsvp(true)}
+                            disabled={busyActivityId === group.nextActivity.id}
+                            className="px-3 py-2 text-xs font-semibold rounded-lg bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm disabled:opacity-50"
+                          >
+                            Cancel RSVP
+                          </button>
+                        ) : (
+                          <button
+                            onClick={() => toggleUpNextRsvp(false)}
+                            disabled={busyActivityId === group.nextActivity.id}
+                            className="px-3 py-2 text-xs font-semibold rounded-lg bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm disabled:opacity-50"
+                          >
+                            RSVP
+                          </button>
+                        )
+                      )}
+                    </div>
+                  )}
                 </div>
               </LiquidGlass>
             </motion.div>
@@ -202,17 +313,22 @@ export default function GroupInspector({ group, onPlanActivity }) {
                         <div className="flex items-center gap-3">
                           <div className="flex -space-x-2">
                             {(a.participants || []).slice(0,5).map((pid, idx) => (
-                              <div key={pid+idx} className="w-7 h-7 rounded-full bg-accent-primary border-2 border-background-primary flex items-center justify-center text-[10px] text-content-primary">{pid.slice(0,2).toUpperCase()}</div>
+                              <div key={pid+idx} className="w-7 h-7 rounded-full bg-background-secondary border-2 border-background-primary flex items-center justify-center text-[10px] text-content-primary">{pid.slice(0,2).toUpperCase()}</div>
                             ))}
                           </div>
                           {joined ? (
-                            <span className="px-3 py-2 text-xs rounded-card bg-green-600 text-white">✓ Joined</span>
+                            <button
+                              onClick={() => togglePlannedRsvp(a, true)}
+                              disabled={busyActivityId === a.id}
+                              className="px-3 py-2 text-xs font-semibold rounded-lg bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm disabled:opacity-50"
+                            >
+                              Cancel RSVP
+                            </button>
                           ) : (
                             <button
-                              onClick={async () => {
-                                try { await updateDoc(doc(db, 'activities', a.id), { participants: arrayUnion(user.uid) }); } catch {}
-                              }}
-                              className="px-3 py-2 text-xs font-semibold rounded-card bg-accent-primary text-content-primary hover:bg-opacity-80"
+                              onClick={() => togglePlannedRsvp(a, false)}
+                              disabled={busyActivityId === a.id}
+                              className="px-3 py-2 text-xs font-semibold rounded-lg bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm disabled:opacity-50"
                             >
                               Join Activity
                             </button>
@@ -237,7 +353,7 @@ export default function GroupInspector({ group, onPlanActivity }) {
                 whileHover={{ scale: 1.02 }}
                 whileTap={{ scale: 0.98 }}
                 onClick={onPlanActivity}
-                className="w-full px-6 py-4 bg-accent-primary text-content-primary rounded-lg font-semibold hover:bg-opacity-90 transition-all duration-200 flex items-center justify-center space-x-2"
+                className="w-full px-6 py-4 bg-white/10 text-white rounded-lg font-semibold hover:bg-white/20 backdrop-blur-sm transition-all duration-200 flex items-center justify-center space-x-2"
               >
                 <Plus className="w-5 h-5" />
                 <span>Plan New Activity</span>
@@ -246,6 +362,12 @@ export default function GroupInspector({ group, onPlanActivity }) {
           </motion.div>
         </div>
       </div>
+      {/* Members Modal */}
+      <MembersModal
+        isOpen={isMembersOpen}
+        onClose={() => setIsMembersOpen(false)}
+        members={group.members || []}
+      />
     </>
   );
 } 

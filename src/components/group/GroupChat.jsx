@@ -12,6 +12,7 @@ import { useActivityPolls } from '../../app/hooks/useActivityPolls';
 import { doc, getDoc } from 'firebase/firestore';
 import { db } from '../../app/Lib/firebase';
 import { useAuth } from '../../app/contexts/AuthContext';
+import { markGroupAsRead } from '../../app/hooks/useUnreadSummary';
 
 export default function GroupChat({ group }) {
   const { messages, loading, error, sendMessage } = useGroupMessages(group?.id);
@@ -74,6 +75,24 @@ export default function GroupChat({ group }) {
       return () => container.removeEventListener('scroll', handleScroll);
     }
   }, []);
+
+  // Mark as read when entering the chat and when scrolled near bottom
+  useEffect(() => {
+    if (!user?.uid || !group?.id) return;
+    markGroupAsRead(group.id, user.uid);
+  }, [user?.uid, group?.id]);
+
+  useEffect(() => {
+    const container = messagesContainerRef.current;
+    if (!container || !user?.uid || !group?.id) return;
+    const onScrollMark = () => {
+      const { scrollTop, scrollHeight, clientHeight } = container;
+      const isNearBottom = scrollHeight - scrollTop - clientHeight < 120;
+      if (isNearBottom) markGroupAsRead(group.id, user.uid);
+    };
+    container.addEventListener('scroll', onScrollMark);
+    return () => container.removeEventListener('scroll', onScrollMark);
+  }, [user?.uid, group?.id]);
 
   const handleSendMessage = async (e) => {
     e.preventDefault();
@@ -237,8 +256,8 @@ export default function GroupChat({ group }) {
                       {/* Poll notification text */}
                       <div className={`inline-block p-3 rounded-lg ${
                         isOwn 
-                          ? 'bg-white/20 text-white backdrop-blur-sm' 
-                          : 'bg-white/10 text-white backdrop-blur-sm'
+                          ? 'bg-[rgba(255,255,255,0.16)] text-white backdrop-blur-sm' 
+                          : 'bg-[rgba(255,255,255,0.12)] text-white backdrop-blur-sm'
                       }`}>
                         <p className="text-sm">{message.content}</p>
                       </div>
@@ -257,8 +276,8 @@ export default function GroupChat({ group }) {
                       {/* Poll notification text */}
                       <div className={`inline-block p-3 rounded-lg ${
                         isOwn 
-                          ? 'bg-white/20 text-white backdrop-blur-sm' 
-                          : 'bg-white/10 text-white backdrop-blur-sm'
+                          ? 'bg-[rgba(255,255,255,0.16)] text-white backdrop-blur-sm' 
+                          : 'bg-[rgba(255,255,255,0.12)] text-white backdrop-blur-sm'
                       }`}>
                         <p className="text-sm">{message.content}</p>
                       </div>
@@ -269,8 +288,8 @@ export default function GroupChat({ group }) {
                   ) : (
                     <div className={`inline-block p-3 rounded-lg ${
                       isOwn 
-                        ? 'bg-white/20 text-white backdrop-blur-sm' 
-                        : 'bg-white/10 text-white backdrop-blur-sm'
+                        ? 'bg-[rgba(255,255,255,0.16)] text-white backdrop-blur-sm' 
+                        : 'bg-[rgba(255,255,255,0.12)] text-white backdrop-blur-sm'
                     }`}>
                       <p className="text-sm">{message.content}</p>
                     </div>

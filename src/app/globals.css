@@ -1,11 +1,13 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 /* Design System - Focused Clarity */
 
 /* Liquid Glass System */
 .liquid-glass {
   /* Dark, Tonal Glass Background */
-  background-color: rgba(26, 26, 26, 0.5); 
+  background-color: rgba(26, 26, 26, 0.45); 
   
   /* Core Effect */
   -webkit-backdrop-filter: blur(40px);
@@ -19,7 +21,19 @@
     inset 0px 1.5px 2px rgba(255, 255, 255, 0.1),
     
     /* Softer outer drop shadow */
-    0 12px 32px 0 rgba(0, 0, 0, 0.35); 
+    0 12px 32px 0 rgba(0, 0, 0, 0.3); 
+}
+
+/* Liquid Glass - Outline only (no background), for nested cards */
+.liquid-glass-outline {
+  background-color: transparent;
+  -webkit-backdrop-filter: blur(40px);
+  backdrop-filter: blur(40px);
+  border-radius: 24px;
+  border: 1px solid rgba(255, 255, 255, 0.05);
+  box-shadow:
+    inset 0px 1.5px 2px rgba(255, 255, 255, 0.1),
+    0 12px 32px 0 rgba(0, 0, 0, 0.3);
 }
 
 /* Liquid Glass System - Square Version */
@@ -66,9 +80,9 @@
   left: 0;
   width: 100vw;
   height: 100vh;
-  background: 
-    radial-gradient(circle at 20% 20%, rgba(88, 86, 214, 0.3) 0%, transparent 50%),
-    radial-gradient(circle at 80% 80%, rgba(0, 122, 255, 0.2) 0%, transparent 50%);
+  background:
+    radial-gradient(circle at 20% 20%, rgba(88, 86, 214, 0.30) 0%, transparent 50%),
+    radial-gradient(circle at 80% 80%, rgba(0, 122, 255, 0.20) 0%, transparent 50%);
   z-index: -2; /* Layer 1: Static Background */
   pointer-events: none; /* Don't interfere with interactions */
 }
@@ -81,7 +95,7 @@
   left: 10%;
   width: 300px;
   height: 300px;
-  background-color: rgba(88, 86, 214, 0.1); /* Much more subtle */
+  background-color: rgba(88, 86, 214, 0.10); /* default blob */
   border-radius: 50%;
   filter: blur(100px); /* Less blur */
   animation: gentle-float 20s infinite ease-in-out;
@@ -111,9 +125,99 @@ img, .liquid-glass, .liquid-glass-dense, .post-image {
   z-index: 1;
 }
 
+/* === Mesh Gradient Theme Variants === */
+/* Apply by adding a class like 'mesh-theme-gray-haze' to <body> alongside 'has-mesh-gradient' */
+
+/* 1) Current default (indigo + blue) already covered by base rules */
+
+/* 2) Gray Haze (grey with hints of blue & purple) */
+.mesh-theme-gray-haze.has-mesh-gradient::before {
+  background:
+    radial-gradient(circle at 18% 25%, rgba(148, 163, 184, 0.22) 0%, transparent 52%), /* slate-400 */
+    radial-gradient(circle at 80% 78%, rgba(99, 102, 241, 0.16) 0%, transparent 50%),  /* indigo-500 */
+    radial-gradient(circle at 70% 20%, rgba(56, 189, 248, 0.10) 0%, transparent 45%);  /* sky-400 */
+}
+.mesh-theme-gray-haze.has-mesh-gradient::after {
+  background-color: rgba(99, 102, 241, 0.08); /* soft indigo blob */
+}
+
+/* 3) Midnight Neon (cyan, magenta, amber) */
+.mesh-theme-midnight-neon.has-mesh-gradient::before {
+  background:
+    radial-gradient(circle at 15% 25%, rgba(6, 182, 212, 0.18) 0%, transparent 50%),   /* cyan-500 */
+    radial-gradient(circle at 85% 80%, rgba(236, 72, 153, 0.14) 0%, transparent 50%),  /* fuchsia-500 */
+    radial-gradient(circle at 60% 10%, rgba(245, 158, 11, 0.10) 0%, transparent 45%);  /* amber-500 */
+}
+.mesh-theme-midnight-neon.has-mesh-gradient::after {
+  background-color: rgba(236, 72, 153, 0.08);
+}
+
+/* 4) Calm Ocean (blue, sky, emerald) */
+.mesh-theme-calm-ocean.has-mesh-gradient::before {
+  background:
+    radial-gradient(circle at 20% 20%, rgba(29, 78, 216, 0.18) 0%, transparent 50%),   /* blue-700 */
+    radial-gradient(circle at 80% 80%, rgba(14, 165, 233, 0.14) 0%, transparent 50%),  /* sky-500 */
+    radial-gradient(circle at 70% 15%, rgba(16, 185, 129, 0.10) 0%, transparent 45%);  /* emerald-500 */
+}
+.mesh-theme-calm-ocean.has-mesh-gradient::after {
+  background-color: rgba(14, 165, 233, 0.08);
+}
+
+/* 5) Refined Monochrome (grays only) */
+.mesh-theme-refined-mono.has-mesh-gradient::before {
+  background:
+    radial-gradient(circle at 22% 18%, rgba(51, 65, 85, 0.22) 0%, transparent 52%),   /* slate-700 */
+    radial-gradient(circle at 78% 82%, rgba(71, 85, 105, 0.16) 0%, transparent 50%),  /* slate-600 */
+    radial-gradient(circle at 62% 12%, rgba(161, 161, 170, 0.12) 0%, transparent 45%); /* zinc-400 */
+}
+.mesh-theme-refined-mono.has-mesh-gradient::after {
+  background-color: rgba(71, 85, 105, 0.08);
+}
+
+/* 6) Warm Sunset (rose, orange, gold) */
+.mesh-theme-warm-sunset.has-mesh-gradient::before {
+  background:
+    radial-gradient(circle at 20% 25%, rgba(244, 63, 94, 0.18) 0%, transparent 52%),   /* rose-500 */
+    radial-gradient(circle at 80% 78%, rgba(249, 115, 22, 0.14) 0%, transparent 50%),  /* orange-500 */
+    radial-gradient(circle at 68% 12%, rgba(245, 158, 11, 0.10) 0%, transparent 45%);  /* amber-500 */
+}
+.mesh-theme-warm-sunset.has-mesh-gradient::after {
+  background-color: rgba(244, 63, 94, 0.08);
+}
+
 /* Special rule for post card images to be completely opaque */
 /* opaque image wrapper stays above backgrounds but does not need extreme z */
 .post-image { background-color: #000; }
+
+/* Liquid Glass Buttons */
+.btn-glass-primary {
+  background: transparent;
+  backdrop-filter: blur(20px);
+  border: 1px solid #FFFFFF;
+  color: #FFFFFF;
+  transition: all 0.3s ease;
+}
+
+.btn-glass-primary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid #FFFFFF;
+  transform: translateY(-1px);
+  color: #FFFFFF;
+}
+
+.btn-glass-secondary {
+  background: transparent;
+  backdrop-filter: blur(15px);
+  border: 1px solid rgba(255, 255, 255, 0.5);
+  color: #FFFFFF;
+  transition: all 0.3s ease;
+}
+
+.btn-glass-secondary:hover {
+  background: rgba(255, 255, 255, 0.1);
+  border: 1px solid #FFFFFF;
+  color: #FFFFFF;
+}
 
 /* Custom slider styling for AI Planner */
 .slider::-webkit-slider-thumb {

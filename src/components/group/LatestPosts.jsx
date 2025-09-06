@@ -14,20 +14,27 @@ export default function LatestPosts({ group }) {
   useEffect(() => {
     const refCol = collection(db, 'posts');
     const q = query(refCol, where('groupId', '==', group.id), orderBy('timestamp', 'desc'), limit(10));
-    const unsub = onSnapshot(q, (snap) => {
-      const items = [];
-      snap.forEach((d) => {
-        const data = d.data();
-        items.push({
-          id: d.id,
-          title: data.title || data.activityTitle || 'Post',
-          imageUrl: data.media?.[0]?.url || '',
-          author: data.authorName || data.authorId || 'User',
-          timestamp: data.timestamp?.toDate?.()?.toISOString?.() || new Date().toISOString(),
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const items = [];
+        snap.forEach((d) => {
+          const data = d.data();
+          items.push({
+            id: d.id,
+            title: data.title || data.activityTitle || 'Post',
+            imageUrl: data.media?.[0]?.url || '',
+            author: data.authorName || data.authorId || 'User',
+            timestamp: data.timestamp?.toDate?.()?.toISOString?.() || new Date().toISOString(),
+          });
         });
-      });
-      setPosts(items);
-    });
+        setPosts(items);
+      },
+      (err) => {
+        console.warn('LatestPosts listener permission error:', err?.message || err);
+        setPosts([]);
+      }
+    );
     return () => unsub();
   }, [group.id]);
 

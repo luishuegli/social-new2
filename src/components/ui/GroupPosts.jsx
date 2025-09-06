@@ -12,7 +12,7 @@ const mockPosts = [
     author: { name: 'Alex Chen', avatar: null },
     timestamp: '2 hours ago',
     content: 'Captured this amazing sunset during our street photography walk! The golden hour lighting was absolutely perfect.',
-    image: '/api/placeholder/400/300',
+    image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop',
     likes: 24,
     comments: 8,
     type: 'photo'
@@ -22,7 +22,7 @@ const mockPosts = [
     author: { name: 'Sarah Wilson', avatar: null },
     timestamp: '5 hours ago',
     content: 'Quick tip: Try using leading lines to draw the viewer\'s eye into your composition. This bridge shot is a perfect example!',
-    image: '/api/placeholder/400/500',
+    image: 'https://images.unsplash.com/photo-1477959858617-67f85cf4f1df?w=400&h=500&fit=crop',
     likes: 18,
     comments: 12,
     type: 'photo'
@@ -32,7 +32,7 @@ const mockPosts = [
     author: { name: 'Mike Rodriguez', avatar: null },
     timestamp: '1 day ago',
     content: 'Behind the scenes from yesterday\'s portrait session. Sometimes the candid moments between shots are the most genuine.',
-    image: '/api/placeholder/300/400',
+    image: 'https://images.unsplash.com/photo-1449824913935-59a10b8d2000?w=300&h=400&fit=crop',
     likes: 31,
     comments: 6,
     type: 'photo'
@@ -42,7 +42,7 @@ const mockPosts = [
     author: { name: 'Emma Thompson', avatar: null },
     timestamp: '2 days ago',
     content: 'Experimenting with macro photography in my garden. Nature provides the most incredible textures and patterns when you look closely.',
-    image: '/api/placeholder/400/300',
+    image: 'https://images.unsplash.com/photo-1506905925346-21bda4d32df4?w=400&h=300&fit=crop',
     likes: 27,
     comments: 9,
     type: 'photo'
@@ -94,10 +94,10 @@ export default function GroupPosts() {
       {/* Header */}
       <div className="flex items-center justify-between mb-6">
         <div>
-          <h2 className="text-2xl font-bold text-content-primary">Live Posts</h2>
+          <h2 className="text-2xl font-bold text-content-primary">Feed</h2>
           <p className="text-content-secondary">Share your photography journey with the group</p>
         </div>
-        <button className="flex items-center space-x-2 px-4 py-2 bg-accent-primary text-content-primary rounded-xl font-medium hover:bg-opacity-90 transition-all duration-200">
+        <button className="flex items-center space-x-2 px-4 py-2 bg-accent-primary text-background-primary rounded-xl font-medium hover:bg-opacity-90 transition-all duration-200">
           <Camera className="w-5 h-5" />
           <span>New Post</span>
         </button>

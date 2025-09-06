@@ -33,7 +33,7 @@ export default function AIReviewPoll({ suggestions, durationMinutes = 60, onChan
               className="bg-white/10 border border-white/20 rounded-lg p-4 hover:bg-white/15 transition-colors"
             >
               <div className="flex items-start space-x-3">
-                <div className="flex-shrink-0 w-8 h-8 bg-accent-primary rounded-full flex items-center justify-center">
+                <div className="flex-shrink-0 w-8 h-8 bg-content-secondary rounded-full flex items-center justify-center">
                   <span className="text-white font-semibold text-sm">{index + 1}</span>
                 </div>
                 <div className="flex-1">
@@ -79,7 +79,7 @@ export default function AIReviewPoll({ suggestions, durationMinutes = 60, onChan
           <button
             onClick={onCreatePoll}
             disabled={isCreating}
-            className="flex-1 flex items-center justify-center space-x-2 py-4 px-6 bg-accent-primary text-white font-semibold rounded-lg hover:bg-accent-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            className="flex-1 flex items-center justify-center space-x-2 py-4 px-6 bg-white/10 text-white font-semibold rounded-lg hover:bg-white/20 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
             {isCreating ? (
               <>

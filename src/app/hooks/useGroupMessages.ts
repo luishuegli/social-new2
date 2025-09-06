@@ -52,8 +52,9 @@ export function useGroupMessages(groupId: string) {
           setError(null);
         },
         (err) => {
-          console.error('❌ Error loading group messages:', err);
-          setError('Failed to load messages');
+          console.warn('Group messages listener permission error:', (err as any)?.message || err);
+          setMessages([]);
+          setError('');
           setLoading(false);
         }
       );

@@ -13,33 +13,22 @@ export function usePosts() {
   const { user } = useAuth();
 
   useEffect(() => {
-    // If logged out, hydrate from server so Home still shows seeded posts
+    // Fetch posts for all users (authenticated and non-authenticated)
+    // This ensures the home feed is always populated
+    setLoading(true);
+    
     if (!user) {
-      setLoading(true);
-      fetch('/api/debug-feed')
+      // For non-authenticated users, fetch public posts via API
+      fetch('/api/posts?limit=20')
         .then(async (res) => {
-          if (!res.ok) throw new Error('debug-feed failed');
+          if (!res.ok) throw new Error('Failed to fetch posts');
           const json = await res.json();
-          const mapped: Post[] = (json.items || []).map((data: any) => ({
-            id: data.id,
-            userName: data.authorName || data.authorId || 'User',
-            userAvatar: data.authorAvatar || '',
-            timestamp: data.timestamp?._seconds ? new Date(data.timestamp._seconds * 1000).toISOString() : new Date().toISOString(),
-            content: data.description || data.activityTitle || '',
-            imageUrl: data.media?.[0]?.url || data.imageUrl,
-            likes: data.likes || 0,
-            comments: data.comments || 0,
-            isLiked: false,
-            postType: data.postType || 'Individual',
-            authenticityType: data.authenticityType,
-            groupName: data.groupName,
-            participants: data.participants,
-          }));
-          setPosts(mapped);
+          setPosts(json.posts || []);
           setLoading(false);
           setError(null);
         })
-        .catch(() => {
+        .catch((error) => {
+          setError('Failed to load posts');
           setPosts([]);
           setLoading(false);
         });
@@ -79,18 +68,18 @@ export function usePosts() {
             setError(null);
             setLoading(false);
           } else if (!didHydrateFromApi) {
-            // Fallback: hydrate from server (admin) API to confirm connectivity/data
-            fetch('/api/debug-feed')
+            // Fallback: hydrate from server (admin) API
+            fetch('/api/posts?limit=20')
               .then(async (res) => {
-                if (!res.ok) throw new Error('debug-feed failed');
+                if (!res.ok) throw new Error('posts api failed');
                 const json = await res.json();
-                const mapped: Post[] = (json.items || []).map((data: any) => ({
+                const mapped: Post[] = (json.posts || []).map((data: any) => ({
                   id: data.id,
-                  userName: data.authorName || data.authorId || 'User',
-                  userAvatar: data.authorAvatar || '',
-                  timestamp: data.timestamp?._seconds ? new Date(data.timestamp._seconds * 1000).toISOString() : new Date().toISOString(),
-                  content: data.description || data.activityTitle || '',
-                  imageUrl: data.media?.[0]?.url || data.imageUrl,
+                  userName: data.userName || data.authorName || data.authorId || 'User',
+                  userAvatar: data.userAvatar || '',
+                  timestamp: data.timestamp || new Date().toISOString(),
+                  content: data.content || data.description || data.activityTitle || '',
+                  imageUrl: data.imageUrl || data.media?.[0]?.url,
                   likes: data.likes || 0,
                   comments: data.comments || 0,
                   isLiked: false,

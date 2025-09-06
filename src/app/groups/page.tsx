@@ -37,6 +37,16 @@ export default function GroupsPage() {
     (group) => group.id !== dashboardFeaturedGroup?.id
   );
 
+  // Ensure unique groups to avoid React key collisions when server/client hydration both supply items
+  const uniqueStandardGroups = React.useMemo(() => {
+    const seen = new Set<string>();
+    return dashboardStandardGroups.filter((g) => {
+      if (seen.has(g.id)) return false;
+      seen.add(g.id);
+      return true;
+    });
+  }, [dashboardStandardGroups]);
+
   return (
     <AppLayout>
       <div className="w-full max-w-full mx-auto">
@@ -56,7 +66,7 @@ export default function GroupsPage() {
                 Connect with communities and share interests with like-minded people.
               </p>
             </div>
-             <button className="bg-accent-primary text-content-primary px-6 py-3 rounded-card font-semibold hover:bg-opacity-90 transition-all duration-200 flex items-center space-x-2 self-start sm:self-auto" onClick={() => window.location.href='/groups/create'}>
+             <button className="bg-background-secondary text-content-primary hover:bg-opacity-80 px-6 py-3 rounded-lg font-semibold flex items-center space-x-2 self-start sm:self-auto transition-all duration-200" onClick={() => window.location.href='/groups/create'}>
               <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 6v6m0 0v6m0-6h6m-6 0H6" />
               </svg>
@@ -87,7 +97,7 @@ export default function GroupsPage() {
               <p className="text-content-secondary mb-4">{error}</p>
               <button 
                 onClick={() => window.location.reload()} 
-                className="px-4 py-2 bg-accent-primary text-content-primary rounded-card hover:bg-opacity-80 transition-colors"
+                className="bg-background-secondary text-content-primary hover:bg-opacity-80 px-4 py-2 rounded-card transition-all duration-200"
               >
                 Try Again
               </button>
@@ -109,7 +119,7 @@ export default function GroupsPage() {
               )}
 
               {/* Standard Group Cards - Grid Layout */}
-              {dashboardStandardGroups.map((group) => (
+              {uniqueStandardGroups.map((group) => (
                 <GroupCard key={group.id} group={group} />
               ))}
 
@@ -129,7 +139,41 @@ export default function GroupsPage() {
                 </svg>
               </div>
               <h3 className="text-content-primary font-semibold mb-2">No groups yet</h3>
-              <p className="text-content-secondary">Join some groups to see them here.</p>
+              <p className="text-content-secondary mb-4">Join some groups to see them here.</p>
+              <div className="flex items-center justify-center gap-3">
+                <button
+                  onClick={async () => {
+                    try {
+                      await fetch('/api/seed-all', { method: 'POST' });
+                      window.location.reload();
+                    } catch (e) {
+                      console.error('Seeding failed', e);
+                    }
+                  }}
+                  className="px-4 py-2 border border-border-separator text-content-secondary rounded-card hover:bg-background-secondary transition-colors"
+                >
+                  Seed Demo Content
+                </button>
+                <button
+                  onClick={async () => {
+                    try {
+                      // In dev, join current user to all seeded groups
+                      const res = await fetch('/api/test-auth');
+                      const json = res.ok ? await res.json() : null;
+                      const uid = json?.uid || (window as any)?.CURRENT_USER_UID;
+                      if (uid) {
+                        await fetch(`/api/addUserToAllGroups?uid=${encodeURIComponent(uid)}`);
+                      }
+                      window.location.reload();
+                    } catch (e) {
+                      console.error('Join seeded groups failed', e);
+                    }
+                  }}
+                  className="px-4 py-2 bg-accent-primary text-background-primary rounded-card hover:bg-opacity-80 transition-colors"
+                >
+                  Join Seeded Groups
+                </button>
+              </div>
             </div>
           </motion.div>
         )}

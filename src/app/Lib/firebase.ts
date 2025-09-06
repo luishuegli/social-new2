@@ -3,7 +3,7 @@
 // src/lib/firebase.ts
 import { initializeApp, getApps } from "firebase/app";
 import { getAuth, connectAuthEmulator } from "firebase/auth";
-import { getFirestore, connectFirestoreEmulator } from "firebase/firestore";
+import { getFirestore, connectFirestoreEmulator, initializeFirestore } from "firebase/firestore";
 import { getStorage } from "firebase/storage";
 
 const firebaseConfig = {
@@ -36,31 +36,49 @@ try {
 }
 
 const auth = getAuth(app);
-const db = getFirestore(app);
+// Optionally force long polling to avoid QUIC/WebChannel flakiness in some networks
+const shouldForceLongPolling =
+  typeof window !== 'undefined' && (
+    process.env.NEXT_PUBLIC_FIRESTORE_LONG_POLLING === 'true' ||
+    process.env.NEXT_PUBLIC_FIRESTORE_LONG_POLLING === '1'
+  );
+
+const db = shouldForceLongPolling
+  ? initializeFirestore(app, { experimentalAutoDetectLongPolling: true, useFetchStreams: false })
+  : getFirestore(app);
 const storage = getStorage(app);
 
-// Connect to emulators in development (and only in browser contexts)
+// Connect to emulators only if a NEW explicit client flag is set.
+// This prevents accidental emulator usage when the emulator isn't running.
+const legacyFlag =
+  process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true' ||
+  process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === '1';
 const shouldUseEmulators =
   typeof window !== 'undefined' &&
   process.env.NODE_ENV === 'development' &&
-  (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === 'true' || process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS === '1');
+  (process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS_CLIENT === 'true' ||
+    process.env.NEXT_PUBLIC_USE_FIREBASE_EMULATORS_CLIENT === '1');
 
 if (shouldUseEmulators) {
   try {
     // Avoid duplicate connections (Next.js fast refresh)
     const authAny = auth as unknown as { emulatorConfig?: unknown };
     if (!authAny.emulatorConfig) {
-      connectAuthEmulator(auth, 'http://localhost:9099', { disableWarnings: true });
+      connectAuthEmulator(auth, 'http://127.0.0.1:9099', { disableWarnings: true });
     }
     const dbAny = db as unknown as { _settings?: { host?: string } };
     const host = dbAny?._settings?.host || '';
-    if (!host.includes('localhost')) {
-      connectFirestoreEmulator(db, 'localhost', 8080);
+    if (!host.includes('localhost') && !host.includes('127.0.0.1')) {
+      connectFirestoreEmulator(db, '127.0.0.1', 8080);
     }
     console.log('Connected to Firebase emulators (auth:9099, firestore:8080)');
   } catch (e) {
     console.warn('Failed to connect to emulators:', e);
   }
+} else if (typeof window !== 'undefined' && process.env.NODE_ENV === 'development' && legacyFlag) {
+  console.warn(
+    'Ignoring NEXT_PUBLIC_USE_FIREBASE_EMULATORS. Use NEXT_PUBLIC_USE_FIREBASE_EMULATORS_CLIENT=true to enable client emulators explicitly.'
+  );
 }
 
 export { app, auth, db, storage };

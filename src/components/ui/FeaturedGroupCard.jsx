@@ -5,9 +5,11 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Calendar, MapPin, Users, Star, ArrowRight } from 'lucide-react';
+import MembersModal from './MembersModal';
 import LiquidGlass from './LiquidGlass';
 
 export default function FeaturedGroupCard({ group }) {
+  const [isMembersOpen, setIsMembersOpen] = React.useState(false);
   // Display more members for the featured card
   const displayMembers = group.members?.slice(0, 6) || [];
   const remainingCount = (group.members?.length || 0) - displayMembers.length;
@@ -54,8 +56,8 @@ export default function FeaturedGroupCard({ group }) {
               <span className="text-sm font-semibold text-accent-primary">Featured Group</span>
             </div>
             {group.nextActivity && (
-              <div className="px-3 py-1 bg-accent-primary rounded-full">
-                <span className="text-xs font-semibold text-content-primary">Next Activity Soon</span>
+              <div className="px-3 py-1 bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm rounded-lg border border-white/10">
+                <span className="text-xs font-semibold">Next Activity Soon</span>
               </div>
             )}
           </div>
@@ -86,7 +88,14 @@ export default function FeaturedGroupCard({ group }) {
               {/* Members Section - Moved Below Group Name */}
               <div className="flex items-center space-x-4">
                 {/* Stacked Member Avatars */}
-                <div className="flex -space-x-3">
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsMembersOpen(true); }}
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setIsMembersOpen(true); } }}
+                  className="flex -space-x-3 focus:outline-none"
+                  aria-label="View members"
+                >
                   {displayMembers.map((member, index) => (
                     <div
                       key={member.id}
@@ -115,22 +124,29 @@ export default function FeaturedGroupCard({ group }) {
                       </span>
                     </div>
                   )}
-                </div>
+                </button>
                 
-                <div className="flex items-center">
-                  <p className="text-content-secondary">
-                    {group.memberCount || group.members?.length || 0} member{(group.memberCount || group.members?.length || 0) !== 1 ? 's' : ''}
-                  </p>
-                </div>
+                <button
+                  type="button"
+                  onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsMembersOpen(true); }}
+                  onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+                  className="flex items-center gap-2 px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-content-secondary"
+                  aria-label="View members"
+                >
+                  <Users className="w-4 h-4" />
+                  <span className="text-sm">
+                    {group.memberCount || group.members?.length || 0}
+                  </span>
+                </button>
               </div>
             </div>
 
             {/* Right Section - Activity Info */}
             {group.nextActivity && (
               <div className="md:w-80 flex-shrink-0">
-                <div className="p-4 bg-background-secondary rounded-2xl border border-border-separator">
+                <div className="p-4 bg-transparent rounded-2xl liquid-glass-outline">
                   <div className="flex items-center space-x-3 mb-3">
-                    <div className={`p-2 rounded-full bg-background-primary ${getActivityTypeColor(group.nextActivity.type)}`}>
+                    <div className={`p-2 rounded-full bg-background-primary text-white`}>
                       {getActivityIcon(group.nextActivity.type)}
                     </div>
                     <div className="flex-1 min-w-0">
@@ -174,15 +190,21 @@ export default function FeaturedGroupCard({ group }) {
                     )}
                   </div>
 
-                  {/* View Activity Button */}
-                  <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-accent-primary text-content-primary rounded-xl font-semibold hover:bg-opacity-90 transition-all duration-200 group">
-                    <span>View Activity</span>
+                  {/* RSVP Button */}
+                  <button className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm rounded-lg font-semibold transition-all duration-200 group">
+                    <span>RSVP</span>
                     <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-200" />
                   </button>
                 </div>
               </div>
             )}
           </div>
+          {/* Members Modal */}
+          <MembersModal
+            isOpen={isMembersOpen}
+            onClose={() => setIsMembersOpen(false)}
+            members={group.members || []}
+          />
         </LiquidGlass>
       </motion.div>
     </Link>

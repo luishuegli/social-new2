@@ -1,20 +1,18 @@
 // src/app/api/reset-voting/route.js
-import { db } from '../../Lib/firebase';
-import { collection, getDocs, doc, updateDoc } from 'firebase/firestore';
+import { adminDb } from '../../Lib/firebaseAdmin';
 
 export async function GET() {
   try {
     console.log('🔄 Resetting voting state...');
     
-    // Get all polls
-    const pollsRef = collection(db, 'polls');
-    const pollsSnapshot = await getDocs(pollsRef);
+    // Get all polls (Admin SDK)
+    const pollsSnapshot = await adminDb.collection('polls').get();
     
     const polls = [];
-    pollsSnapshot.forEach((doc) => {
-      const data = doc.data();
+    pollsSnapshot.forEach((docSnap) => {
+      const data = docSnap.data();
       polls.push({
-        id: doc.id,
+        id: docSnap.id,
         ...data
       });
     });
@@ -42,11 +40,10 @@ export async function GET() {
       voters: []
     }));
     
-    // Update the poll
-    const pollRef = doc(db, 'polls', latestPoll.id);
-    await updateDoc(pollRef, {
+    // Update the poll (Admin SDK)
+    await adminDb.collection('polls').doc(latestPoll.id).update({
       options: resetOptions,
-      totalVotes: 0
+      totalVotes: 0,
     });
     
     console.log('✅ Voting state reset successfully');

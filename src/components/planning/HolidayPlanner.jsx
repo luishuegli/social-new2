@@ -116,11 +116,11 @@ export default function HolidayPlanner({ onClose }) {
 
       {/* Progress Indicator */}
       <div className="flex items-center justify-center space-x-2 mb-6">
-        <div className={`w-3 h-3 rounded-full ${currentStep === 'destination' ? 'bg-accent-primary' : 'bg-white/20'}`} />
-        <div className={`w-8 h-0.5 ${currentStep === 'vibe' || currentStep === 'destinations' ? 'bg-accent-primary' : 'bg-white/20'}`} />
-        <div className={`w-3 h-3 rounded-full ${currentStep === 'vibe' ? 'bg-accent-primary' : 'bg-white/20'}`} />
-        <div className={`w-8 h-0.5 ${currentStep === 'destinations' ? 'bg-accent-primary' : 'bg-white/20'}`} />
-        <div className={`w-3 h-3 rounded-full ${currentStep === 'destinations' ? 'bg-accent-primary' : 'bg-white/20'}`} />
+        <div className={`w-3 h-3 rounded-full ${currentStep === 'destination' ? 'bg-content-secondary' : 'bg-white/20'}`} />
+        <div className={`w-8 h-0.5 ${currentStep === 'vibe' || currentStep === 'destinations' ? 'bg-content-secondary' : 'bg-white/20'}`} />
+        <div className={`w-3 h-3 rounded-full ${currentStep === 'vibe' ? 'bg-content-secondary' : 'bg-white/20'}`} />
+        <div className={`w-8 h-0.5 ${currentStep === 'destinations' ? 'bg-content-secondary' : 'bg-white/20'}`} />
+        <div className={`w-3 h-3 rounded-full ${currentStep === 'destinations' ? 'bg-content-secondary' : 'bg-white/20'}`} />
       </div>
 
       {/* Step 1: Destination & Dates */}
@@ -198,7 +198,7 @@ export default function HolidayPlanner({ onClose }) {
 
           <button
             onClick={handleNext}
-            className="w-full py-4 px-6 bg-accent-primary text-white font-semibold rounded-lg hover:bg-accent-primary/90 transition-all duration-200"
+            className="w-full py-4 px-6 bg-white/10 text-white font-semibold rounded-lg hover:bg-white/20 backdrop-blur-sm transition-all duration-200"
           >
             Next: Vibe Check
           </button>
@@ -253,7 +253,7 @@ export default function HolidayPlanner({ onClose }) {
             <button
               onClick={handleNext}
               disabled={isLoading}
-              className="flex-1 py-4 px-6 bg-accent-primary text-white font-semibold rounded-lg hover:bg-accent-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="flex-1 py-4 px-6 bg-white/10 text-white font-semibold rounded-lg hover:bg-white/20 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center space-x-2">
@@ -323,7 +323,7 @@ export default function HolidayPlanner({ onClose }) {
             </button>
             <button
               onClick={onClose}
-              className="flex-1 py-4 px-6 bg-accent-primary text-white font-semibold rounded-lg hover:bg-accent-primary/90 transition-all duration-200"
+              className="flex-1 py-4 px-6 bg-white/10 text-white font-semibold rounded-lg hover:bg-white/20 backdrop-blur-sm transition-all duration-200"
             >
               Start Planning
             </button>

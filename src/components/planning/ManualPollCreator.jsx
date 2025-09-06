@@ -4,8 +4,10 @@ import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Plus, X, Upload, Image as ImageIcon } from 'lucide-react';
 import LiquidGlass from '../ui/LiquidGlass';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 export default function ManualPollCreator({ onClose, groupId = 'group-6' }) {
+  const { user } = useAuth();
   const [pollData, setPollData] = useState({
     title: '',
     description: '',
@@ -89,8 +91,8 @@ export default function ManualPollCreator({ onClose, groupId = 'group-6' }) {
             imageUrl: option.imageUrl
           })),
           groupId: groupId,
-          userId: 'current-user', // TODO: Get from auth context
-          userName: 'Current User', // TODO: Get from auth context
+          userId: user?.uid || 'anonymous-user',
+          userName: user?.displayName || user?.email || 'Anonymous User',
           // New fields for time limit
           status: 'active',
           expiresAt: Date.now() + pollData.durationMinutes * 60 * 1000
@@ -282,7 +284,7 @@ export default function ManualPollCreator({ onClose, groupId = 'group-6' }) {
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full py-4 px-6 bg-accent-primary text-white font-semibold rounded-lg hover:bg-accent-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          className="w-full py-4 px-6 bg-white/10 text-white font-semibold rounded-lg hover:bg-white/20 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         >
           {isLoading ? (
             <div className="flex items-center justify-center space-x-2">

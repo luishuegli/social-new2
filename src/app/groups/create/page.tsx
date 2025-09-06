@@ -89,7 +89,7 @@ export default function CreateGroupPage() {
                 type="file"
                 accept="image/*"
                 onChange={(e) => setImageFile(e.target.files?.[0] || null)}
-                className="block w-full text-sm text-content-secondary file:mr-4 file:py-2 file:px-3 file:rounded-card file:border-0 file:text-sm file:font-semibold file:bg-accent-primary file:text-content-primary hover:file:bg-opacity-90"
+                className="block w-full text-sm text-content-secondary file:mr-4 file:py-2 file:px-3 file:rounded-card file:border file:border-white/10 file:text-sm file:font-semibold file:bg-white/10 file:text-white hover:file:bg-white/20 file:backdrop-blur-sm"
               />
             </div>
             <div>
@@ -133,14 +133,14 @@ export default function CreateGroupPage() {
               <button
                 type="submit"
                 disabled={submitting}
-                className="px-4 py-2 bg-accent-primary text-content-primary rounded-card disabled:opacity-60"
+                className="px-4 py-2 bg-white/10 text-white rounded-card hover:bg-white/20 backdrop-blur-sm disabled:opacity-60"
               >
                 {submitting ? 'Creating…' : 'Create group'}
               </button>
               <button
                 type="button"
                 onClick={() => router.back()}
-                className="px-4 py-2 bg-content-secondary text-content-primary rounded-card"
+                className="px-4 py-2 bg-white/10 text-white rounded-card hover:bg-white/20 backdrop-blur-sm"
               >
                 Cancel
               </button>

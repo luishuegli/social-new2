@@ -1,14 +1,13 @@
 'use client';
 
 import React, { useState } from 'react';
-import { Gift, DollarSign, Sparkles, Coins, Crown } from 'lucide-react';
+import { Gift, DollarSign, Coins, Crown } from 'lucide-react';
 import LiquidGlass from '../ui/LiquidGlass';
 
 export default function AIPlannerForm({ onGenerateSuggestions }) {
   const [formData, setFormData] = useState({
-    activityType: 'Food & Drink',
-    customActivity: '',
-    budget: '$',
+    prompt: '',
+    budget: 'Any',
     radius: 25,
     count: 3,
     durationMinutes: 60
@@ -16,28 +15,22 @@ export default function AIPlannerForm({ onGenerateSuggestions }) {
 
   const [isLoading, setIsLoading] = useState(false);
 
-  const activityTypes = [
-    'Food & Drink',
-    'Outdoors & Adventure',
-    'Creative & Arts',
-    'Nightlife',
-    'Sports & Fitness',
-    'Other'
-  ];
+
 
   const budgetOptions = [
     { value: 'Free', label: 'Free', icon: Gift, color: 'text-white' },
     { value: '$', label: 'Inexpensive', icon: DollarSign, color: 'text-white' },
     { value: '$$', label: 'Moderate', icon: Coins, color: 'text-white' },
-    { value: '$$$', label: 'Pricey', icon: Crown, color: 'text-white' }
+    { value: '$$$', label: 'Pricey', icon: Crown, color: 'text-white' },
+    { value: 'Any', label: 'No Budget Limit', icon: Crown, color: 'text-white' }
   ];
 
   const handleSubmit = async (e) => {
     e.preventDefault();
     
-    // Validate custom activity description if "Other" is selected
-    if (formData.activityType === 'Other' && !formData.customActivity.trim()) {
-      alert('Please describe your activity preferences when selecting "Other"');
+    // Validate prompt is provided
+    if (!formData.prompt.trim()) {
+      alert('Please describe what kind of activity you\'re looking for');
       return;
     }
     
@@ -65,39 +58,19 @@ export default function AIPlannerForm({ onGenerateSuggestions }) {
         </div>
 
         <form onSubmit={handleSubmit} className="space-y-6">
-          {/* Activity Type */}
+          {/* Activity Prompt */}
           <div className="space-y-2">
             <label className="block text-sm font-medium text-white">
-              Activity Type
+              What kind of activity are you looking for?
             </label>
-            <select
-              value={formData.activityType}
-              onChange={(e) => updateFormData('activityType', e.target.value)}
-              className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent"
-            >
-              {activityTypes.map(type => (
-                <option key={type} value={type} className="bg-neutral-800 text-white">
-                  {type}
-                </option>
-              ))}
-            </select>
-            
-            {/* Custom Activity Description */}
-            {formData.activityType === 'Other' && (
-              <div className="mt-3 space-y-2">
-                <label className="block text-sm font-medium text-white">
-                  Describe your activity preferences
-                </label>
-                <textarea
-                  value={formData.customActivity}
-                  onChange={(e) => updateFormData('customActivity', e.target.value)}
-                  placeholder="Describe the type of activity you're looking for, any specific interests, or special conditions..."
-                  className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent resize-none"
-                  rows={3}
-                  required={formData.activityType === 'Other'}
-                />
-              </div>
-            )}
+            <textarea
+              value={formData.prompt}
+              onChange={(e) => updateFormData('prompt', e.target.value)}
+              placeholder="e.g., Chill sunset walk with good photo spots, or find a cozy board game cafe, or adventurous activity for 4 friends"
+              className="w-full p-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent resize-none"
+              rows={3}
+              required
+            />
           </div>
 
           {/* Budget */}
@@ -115,7 +88,7 @@ export default function AIPlannerForm({ onGenerateSuggestions }) {
                     onClick={() => updateFormData('budget', option.value)}
                     className={`p-3 rounded-lg border transition-all ${
                       formData.budget === option.value
-                        ? 'bg-accent-primary border-accent-primary text-white'
+                        ? 'bg-content-secondary border-content-secondary text-white'
                         : 'bg-white/10 border-white/20 text-neutral-300 hover:bg-white/20'
                     }`}
                   >
@@ -190,7 +163,7 @@ export default function AIPlannerForm({ onGenerateSuggestions }) {
           <button
             type="submit"
             disabled={isLoading}
-            className="w-full py-4 px-6 bg-accent-primary text-white font-semibold rounded-lg hover:bg-accent-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+            className="w-full py-4 px-6 bg-white/10 text-white font-semibold rounded-lg hover:bg-white/20 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
           >
             {isLoading ? (
               <div className="flex items-center justify-center space-x-2">
