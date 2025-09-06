@@ -38,7 +38,7 @@ export default function ActivityModePage() {
       <div className="max-w-2xl mx-auto">
         <div className="liquid-glass p-4 sm:p-6 lg:p-8 mb-6">
           <h1 className="text-heading-1 font-bold text-content-primary">Activity Mode</h1>
-          <p className="text-content-secondary">Start a planned activity to enable Live Posts.</p>
+          <p className="text-content-secondary">Start a planned activity to enable Feed.</p>
         </div>
 
         <div className="space-y-4">

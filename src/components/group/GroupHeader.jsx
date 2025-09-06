@@ -12,7 +12,7 @@ export default function GroupHeader({ group }) {
   const remainingCount = (group?.members?.length || 0) - displayMembers.length;
 
   const handleJoinClick = () => {
-    // TODO: Implement join/leave functionality
+    // Join/leave functionality - placeholder for future implementation
     console.log(`${group?.joined ? 'Leave' : 'Join'} group: ${group?.name}`);
   };
 
@@ -86,14 +86,14 @@ export default function GroupHeader({ group }) {
             onClick={handleJoinClick}
             className={`px-6 py-3 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center space-x-2 ${
               group.joined
-                ? 'bg-content-secondary text-content-primary hover:bg-opacity-80'
-                : 'bg-accent-primary text-content-primary hover:bg-opacity-90'
+                ? 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm'
+                : 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm'
             }`}
           >
             {group.joined ? (
               <>
                 <Check className="w-4 h-4" />
-                <span>✓ Member</span>
+                <span>Member</span>
               </>
             ) : (
               <>

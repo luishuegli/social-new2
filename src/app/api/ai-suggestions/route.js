@@ -1,5 +1,6 @@
 // src/app/api/ai-suggestions/route.js
 import { GoogleGenerativeAI } from '@google/generative-ai';
+import { handleAPIError, validateRequiredFields, APIError } from '../../utils/errorHandler';
 
 const genAI = new GoogleGenerativeAI(process.env.GEMINI_API_KEY);
 
@@ -29,8 +30,12 @@ export async function POST(request) {
   try {
     const { parameters, groupId, votingContext } = await request.json();
     
-    console.log('🤖 AI API called with parameters:', parameters);
-    console.log('📊 Voting context:', votingContext);
+    // Validate required fields
+    validateRequiredFields({ parameters }, ['parameters']);
+    
+    if (!process.env.GEMINI_API_KEY) {
+      throw new APIError('AI service not configured', 503, 'SERVICE_UNAVAILABLE');
+    }
 
     const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash-preview-05-20" });
 
@@ -38,8 +43,8 @@ export async function POST(request) {
     let prompt = `You are an AI activity planner helping a group plan their next activity. 
 
 Group Parameters:
-- Activity Type: ${parameters.activityType || 'Any'}
-- Budget: ${parameters.budget || 'Flexible'}
+- Activity Description: ${parameters.prompt || 'Any type of activity'}
+- Budget: ${parameters.budget === 'Any' ? 'No budget limit - show all options' : (parameters.budget || 'Flexible')}
 - Radius: ${parameters.radius || 'Any distance'}
 - Number of suggestions: ${parameters.count || 3}
 
@@ -99,7 +104,7 @@ Do NOT include any markdown formatting, asterisks, or extra text. Just the JSON 
           } else if (line.includes('**General Location Type:**')) {
             currentActivity.location = line.split('**General Location Type:**')[1]?.trim() || 'Local area';
           } else if (line.includes('**Activity Category:**')) {
-            currentActivity.category = line.split('**Activity Category:**')[1]?.trim() || parameters.activityType || 'General';
+            currentActivity.category = line.split('**Activity Category:**')[1]?.trim() || 'General';
           }
         }
         
@@ -181,9 +186,6 @@ Do NOT include any markdown formatting, asterisks, or extra text. Just the JSON 
 
     return Response.json(suggestions);
   } catch (error) {
-    console.error('❌ Error in AI suggestions API:', error);
-    return Response.json({ 
-      error: error.message 
-    }, { status: 500 });
+    return handleAPIError(error, 'AI Suggestions');
   }
 }

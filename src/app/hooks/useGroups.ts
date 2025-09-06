@@ -14,8 +14,6 @@ export function useGroups() {
   const [error, setError] = useState<string | null>(null);
   const { user } = useAuth();
 
-  // Development mode - use mock data when Firebase is not configured
-  const isDevelopment = process.env.NODE_ENV === 'development';
 
   useEffect(() => {
     if (!user) {
@@ -32,6 +30,25 @@ export function useGroups() {
     // Always use Firestore (even in development) so UI reflects real data
 
     try {
+      // 1) Server hydration via Admin SDK to avoid client connectivity issues
+      (async () => {
+        try {
+          const resp = await fetch(`/api/my-groups?uid=${encodeURIComponent(user.uid)}`);
+          if (resp.ok) {
+            const json = await resp.json();
+            const srvGroups = (json.groups || []) as any[];
+            if (srvGroups.length > 0) {
+              // Ensure we only use groups where the user is actually a member
+              const cleaned = (srvGroups.filter((g: any) => g.isMember === true)) as unknown as Group[];
+              setGroups(cleaned);
+              setStandardGroups(cleaned);
+              setFeaturedGroup(cleaned[0] || null);
+              setLoading(false);
+            }
+          }
+        } catch {}
+      })();
+
       // Query groups where the current user is a member
       const groupsRef = collection(db, 'groups');
       const q = query(
@@ -43,6 +60,11 @@ export function useGroups() {
       const unsubscribe = onSnapshot(
         q,
         (snapshot) => {
+          // If snapshot is empty, keep current (server-hydrated) groups to avoid flicker
+          if (snapshot.empty) {
+            setLoading(false);
+            return;
+          }
           const groupsData: Group[] = [];
           
           const groupIdToMemberIds = new Map<string, string[]>();
@@ -94,6 +116,47 @@ export function useGroups() {
                 const sid = (m.data() as any).senderId;
                 if (sid && !recentSenderIds.includes(sid)) recentSenderIds.push(sid);
               });
+
+              // Compute latest activity from messages
+              let latestActivity: LatestActivity | undefined = undefined;
+              let latestActorId: string | undefined = undefined;
+              const latestMsgDoc = msgsSnap.docs[0];
+              if (latestMsgDoc) {
+                const md: any = latestMsgDoc.data();
+                const isPoll = md.type === 'poll_message' || md.type === 'ai_suggestions' || md.type === 'image_poll' || md.type === 'manual_poll';
+                latestActivity = {
+                  type: isPoll ? ('poll' as const) : ('message' as const),
+                  author: md.senderName,
+                  content: String(md.content || '').trim(),
+                  timestamp: md.timestamp?.toDate?.() || new Date(),
+                  imageUrl: undefined,
+                  pollQuestion: isPoll ? (md.metadata?.pollTitle || md.content || '') : undefined,
+                } as unknown as LatestActivity;
+                latestActorId = md.senderId || undefined;
+              }
+
+              // Compare with latest post in this group
+              try {
+                const postsRef = collection(db, 'posts');
+                const postSnap = await getDocs(query(postsRef, where('groupId', '==', group.id), orderBy('timestamp', 'desc'), limit(1)));
+                const latestPostDoc = postSnap.docs[0];
+                if (latestPostDoc) {
+                  const pd: any = latestPostDoc.data();
+                  const postTs = pd.timestamp?.toDate?.() || new Date(0);
+                  const msgTs = latestActivity?.timestamp ? new Date(latestActivity.timestamp as any) : new Date(0);
+                  if (postTs > msgTs) {
+                    latestActivity = {
+                      type: 'post' as const,
+                      author: pd.authorName,
+                      content: pd.description || pd.activityTitle || 'New post',
+                      timestamp: postTs,
+                      imageUrl: Array.isArray(pd.media) ? (pd.media?.[0]?.url || undefined) : (pd.imageUrl || undefined),
+                      pollQuestion: undefined,
+                    } as unknown as LatestActivity;
+                    latestActorId = pd.authorId || undefined;
+                  }
+                }
+              } catch {}
               // Seniority (join dates) if available in subcollection `groups/{id}/members/{uid}.joinedAt`
               let memberIds: string[] = groupIdToMemberIds.get(group.id) || [];
               try {
@@ -109,7 +172,11 @@ export function useGroups() {
                 }
               } catch {}
 
-              const prioritized = recentSenderIds.concat(memberIds).filter((v, i, a) => a.indexOf(v) === i);
+              // Prioritize last actor first, then other recent senders, then by seniority
+              let prioritized = recentSenderIds.concat(memberIds).filter((v, i, a) => a.indexOf(v) === i);
+              if (latestActorId) {
+                prioritized = [latestActorId].concat(prioritized.filter((id) => id !== latestActorId));
+              }
 
               const usersRef = collection(db, 'users');
               const selectedIds = prioritized.slice(0, 6);
@@ -122,15 +189,17 @@ export function useGroups() {
                 if (single.exists()) {
                   const ud: any = single.data();
                   profiles.push({ id: single.id, name: ud.displayName, avatarUrl: ud.profilePictureUrl });
+                } else {
+                  profiles.push({ id: uid, name: 'User', avatarUrl: '' });
                 }
               }
-              return { ...group, members: profiles } as Group;
+              return { ...group, members: profiles, latestActivity: latestActivity || group.latestActivity } as Group;
             } catch {
               return group;
             }
           });
 
-          Promise.all(enrichedGroupsPromise).then((enrichedGroups) => {
+          Promise.all(enrichedGroupsPromise).then(async (enrichedGroups) => {
             // Sort groups: pinned first, then by activity date
           const sortedGroups = enrichedGroups.sort((a, b) => {
             // First sort by pinned status
@@ -150,6 +219,8 @@ export function useGroups() {
           });
 
             setGroups(sortedGroups);
+
+            // Do not auto-join in production; keep UI consistent with server state
           
             // Find featured group (group with soonest activity that's not pinned)
           const unpinnedGroupsWithActivities = sortedGroups.filter(group => 
@@ -179,7 +250,7 @@ export function useGroups() {
       setError('Failed to load groups');
       setLoading(false);
     }
-  }, [user, isDevelopment]);
+  }, [user]);
 
   const handleJoinActivity = async (groupId: string, activityId: string) => {
     try {

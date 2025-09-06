@@ -14,19 +14,26 @@ export default function RecentChat({ group }) {
   useEffect(() => {
     const refCol = collection(db, 'groups', group.id, 'messages');
     const q = query(refCol, orderBy('timestamp', 'desc'), limit(5));
-    const unsub = onSnapshot(q, (snap) => {
-      const items = [];
-      snap.forEach((d) => {
-        const data = d.data();
-        items.push({
-          id: d.id,
-          content: data.text || data.content || '',
-          author: { name: data.senderName || data.senderId || 'User', avatarUrl: data.senderAvatar || '' },
-          timestamp: data.timestamp?.toDate?.()?.toISOString?.() || new Date().toISOString(),
+    const unsub = onSnapshot(
+      q,
+      (snap) => {
+        const items = [];
+        snap.forEach((d) => {
+          const data = d.data();
+          items.push({
+            id: d.id,
+            content: data.text || data.content || '',
+            author: { name: data.senderName || data.senderId || 'User', avatarUrl: data.senderAvatar || '' },
+            timestamp: data.timestamp?.toDate?.()?.toISOString?.() || new Date().toISOString(),
+          });
         });
-      });
-      setMessages(items.reverse());
-    });
+        setMessages(items.reverse());
+      },
+      (err) => {
+        console.warn('RecentChat listener permission error:', err?.message || err);
+        setMessages([]);
+      }
+    );
     return () => unsub();
   }, [group.id]);
 
@@ -58,7 +65,7 @@ export default function RecentChat({ group }) {
             >
               {/* Avatar */}
               <div className="flex-shrink-0">
-                <div className="w-8 h-8 rounded-full overflow-hidden bg-accent-primary">
+                <div className="w-8 h-8 rounded-full overflow-hidden bg-background-secondary">
                   {message.author.avatarUrl ? (
                     <Image
                       src={message.author.avatarUrl}
@@ -99,7 +106,7 @@ export default function RecentChat({ group }) {
         <motion.button
           whileHover={{ scale: 1.02 }}
           whileTap={{ scale: 0.98 }}
-          className="w-full flex items-center justify-center space-x-2 px-4 py-3 bg-accent-primary text-content-primary rounded-lg font-semibold hover:bg-opacity-90 transition-all duration-200"
+          className="w-full bg-background-secondary text-content-primary hover:bg-opacity-80 flex items-center justify-center space-x-2 px-4 py-3 rounded-lg font-semibold transition-all duration-200"
         >
           <span>Open Full Chat</span>
           <ArrowRight className="w-4 h-4" />

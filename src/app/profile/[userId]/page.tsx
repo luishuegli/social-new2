@@ -41,7 +41,7 @@ export default function UserProfilePage() {
   const { posts } = useUserPosts(userId);
   const user = {
     id: userId,
-    name: profile?.displayName || 'User',
+    name: profile?.username || profile?.displayName || 'User',
     avatar: profile?.profilePictureUrl || '',
     bio: profile?.bio || '',
     location: '',

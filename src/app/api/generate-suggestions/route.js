@@ -5,9 +5,9 @@ const GOOGLE_PLACES_API_KEY = process.env.GOOGLE_PLACES_API_KEY;
 export async function POST(request) {
   try {
     const body = await request.json();
-    const { prompt, activityType, budget, radius, groupSize, suggestionCount = 3, lat, lng, location } = body;
+    const { prompt, budget, radius, groupSize, suggestionCount = 3, lat, lng, location, excludeKeys = [], excludePlaceIds = [] } = body;
     
-    console.log('🤖 Generating suggestions:', { activityType, budget, radius, groupSize, suggestionCount, lat, lng, location });
+    console.log('🤖 Generating suggestions:', { prompt, budget, radius, groupSize, suggestionCount, lat, lng, location });
 
     if (!GOOGLE_PLACES_API_KEY) {
       return NextResponse.json({
@@ -19,13 +19,14 @@ export async function POST(request) {
     // Generate suggestions based on the count requested
     const suggestions = await generateActivitySuggestions({
       prompt,
-      activityType,
       budget,
       radius,
       count: suggestionCount,
       lat,
       lng,
-      location
+      location,
+      excludeKeys,
+      excludePlaceIds
     });
 
     return NextResponse.json({
@@ -96,10 +97,9 @@ function isLocationOriented(activity) {
   return keywords.some(k => a.includes(k));
 }
 
-async function generateActivitySuggestions({ prompt, activityType, budget, radius, count = 3, lat, lng, location }) {
-  // If the user added a natural language prompt, prefer it for text search,
-  // otherwise fall back to the structured activityType → Places type mapping.
-  const normalized = (prompt || activityType || '').trim();
+async function generateActivitySuggestions({ prompt, budget, radius, count = 3, lat, lng, location, excludeKeys = [], excludePlaceIds = [] }) {
+  // Use the user's natural language prompt for text search
+  const normalized = (prompt || '').trim();
   const includedType = mapActivityToPlaceType(normalized);
 
   // Build request for Places API (New)
@@ -216,7 +216,35 @@ async function generateActivitySuggestions({ prompt, activityType, budget, radiu
     PRICE_LEVEL_VERY_EXPENSIVE: '$$$$'
   };
 
-  const suggestions = places.slice(0, count).map((place) => {
+  const excludedNameSet = new Set((excludeKeys || []).map((s) => String(s).toLowerCase().trim()).filter(Boolean));
+  const excludedIdSet = new Set((excludePlaceIds || []).map((s) => String(s).trim()).filter(Boolean));
+
+  const suggestions = places
+    .filter((place) => {
+      const name = (place.displayName?.text || place.displayName || '').toLowerCase().trim();
+      const id = String(place.id || '').trim();
+      if (!name && !id) return true;
+      if (excludedIdSet.has(id)) return false;
+      if (name && excludedNameSet.has(name)) return false;
+      
+      // Apply budget filtering if a specific budget is selected (not 'Any')
+      if (budget && budget !== 'Any') {
+        const placePrice = place.priceLevel;
+        if (budget === 'Free' && placePrice !== 'PRICE_LEVEL_FREE') {
+          return false;
+        } else if (budget === '$' && placePrice !== 'PRICE_LEVEL_INEXPENSIVE') {
+          return false;
+        } else if (budget === '$$' && placePrice !== 'PRICE_LEVEL_MODERATE') {
+          return false;
+        } else if (budget === '$$$' && placePrice !== 'PRICE_LEVEL_EXPENSIVE') {
+          return false;
+        }
+      }
+      
+      return true;
+    })
+    .slice(0, count)
+    .map((place) => {
     const photoName = place.photos?.[0]?.name; // e.g., places/XXX/photos/YYY
     const imageUrl = photoName
       ? `https://places.googleapis.com/v1/${photoName}/media?key=${GOOGLE_PLACES_API_KEY}&maxWidthPx=400&maxHeightPx=400`

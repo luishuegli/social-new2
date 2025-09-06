@@ -1,6 +1,11 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
+  // Remove experimental features that might cause issues on Apple Silicon
+  experimental: {
+    // Disable turbopack for now - it can cause issues on Apple Silicon
+    // turbo: false,
+  },
   images: {
     remotePatterns: [
       {
@@ -34,6 +39,19 @@ const nextConfig: NextConfig = {
         pathname: '/**',
       },
     ],
+  },
+  // Ensure compatibility with both Intel and Apple Silicon
+  webpack: (config, { isServer }) => {
+    // Handle potential native module issues
+    if (!isServer) {
+      config.resolve.fallback = {
+        ...config.resolve.fallback,
+        fs: false,
+        net: false,
+        tls: false,
+      };
+    }
+    return config;
   },
 };
 

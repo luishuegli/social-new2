@@ -12,6 +12,8 @@ import {
 } from 'firebase/auth';
 import { auth } from '../Lib/firebase';
 import { useRouter } from 'next/navigation';
+import { db } from '../Lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 interface AuthContextType {
   user: User | null;
@@ -57,6 +59,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signUp = async (email: string, password: string) => {
     try {
       await createUserWithEmailAndPassword(auth, email, password);
+      // New accounts must complete onboarding
+      router.push('/onboarding');
     } catch (error) {
       console.error('Sign up error:', error);
       throw error;
@@ -66,7 +70,15 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   const signInWithGoogle = async () => {
     try {
       const provider = new GoogleAuthProvider();
-      await signInWithPopup(auth, provider);
+      const cred = await signInWithPopup(auth, provider);
+      const uid = cred.user?.uid;
+      if (uid) {
+        const userDoc = await getDoc(doc(db, 'users', uid));
+        if (!userDoc.exists()) {
+          // No profile yet → go to onboarding
+          router.push('/onboarding');
+        }
+      }
     } catch (error) {
       console.error('Google sign in error:', error);
       throw error;

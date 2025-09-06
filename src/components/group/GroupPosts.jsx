@@ -38,17 +38,17 @@ export default function GroupPosts({ group }) {
   }, [group.id]);
 
   const handleLike = (postId) => {
-    // TODO: Implement like functionality
+    // Like functionality - placeholder for future implementation
     console.log('Liked post:', postId);
   };
 
   const handleComment = (postId) => {
-    // TODO: Implement comment functionality
+    // Comment functionality - placeholder for future implementation
     console.log('Comment on post:', postId);
   };
 
   const handleShare = (postId) => {
-    // TODO: Implement share functionality
+    // Share functionality - placeholder for future implementation
     console.log('Share post:', postId);
   };
 
@@ -103,7 +103,7 @@ export default function GroupPosts({ group }) {
                   {/* Author Info */}
                   <div className="flex items-center justify-between mb-3">
                     <div className="flex items-center space-x-2">
-                      <div className="w-8 h-8 rounded-full overflow-hidden bg-white/10 backdrop-blur-sm">
+                      <a href={post.author.username ? `/u/${post.author.username}` : '#'} className="w-8 h-8 rounded-full overflow-hidden bg-white/10 backdrop-blur-sm block">
                         {post.author.avatarUrl ? (
                           <Image
                             src={post.author.avatarUrl}
@@ -119,9 +119,11 @@ export default function GroupPosts({ group }) {
                             </span>
                           </div>
                         )}
-                      </div>
+                      </a>
                       <div>
-                        <p className="text-sm font-semibold text-white">{post.author.name}</p>
+                        <a href={post.author.username ? `/u/${post.author.username}` : '#'} className="text-sm font-semibold text-white hover:underline">
+                          {post.author.name}
+                        </a>
                         <p className="text-xs text-white/50">{post.timestamp}</p>
                       </div>
                     </div>

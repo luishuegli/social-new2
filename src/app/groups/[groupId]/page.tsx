@@ -39,9 +39,9 @@ export default function GroupPage({ params }: GroupPageProps) {
         const data: any = snap.data();
         const memberIds: string[] = Array.isArray(data.members) ? data.members : [];
         const fetchProfiles = async (ids: string[]) => {
-          const take = ids.slice(0, 6);
+          // Fetch profiles for all member ids so the members modal can show the full list
           const results = await Promise.all(
-            take.map(async (uid) => {
+            ids.map(async (uid) => {
               const uref = doc(db, 'users', uid);
               const usnap = await getDoc(uref);
               if (usnap.exists()) {
@@ -101,13 +101,13 @@ export default function GroupPage({ params }: GroupPageProps) {
               className="mb-6"
             >
               <div className="liquid-glass p-4">
-                <div className="flex bg-white/10 backdrop-blur-sm rounded-lg p-1">
+                <div className="flex bg-background-secondary/50 backdrop-blur-sm rounded-lg p-1">
                   <button
                     onClick={() => setActiveView('chat')}
                     className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
                       activeView === 'chat'
-                        ? 'bg-white/20 text-white backdrop-blur-sm'
-                        : 'text-white/70 hover:text-white'
+                        ? 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm'
+                        : 'text-content-secondary hover:text-content-primary hover:bg-background-secondary'
                     }`}
                   >
                     Chat
@@ -116,8 +116,8 @@ export default function GroupPage({ params }: GroupPageProps) {
                     onClick={() => setActiveView('posts')}
                     className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
                       activeView === 'posts'
-                        ? 'bg-white/20 text-white backdrop-blur-sm'
-                        : 'text-white/70 hover:text-white'
+                        ? 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm'
+                        : 'text-content-secondary hover:text-content-primary hover:bg-background-secondary'
                     }`}
                   >
                     Posts

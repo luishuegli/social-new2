@@ -5,9 +5,14 @@ import Image from 'next/image';
 import Link from 'next/link';
 import { motion } from 'framer-motion';
 import { Calendar, Users, MessageSquare, Image as ImageIcon, Vote } from 'lucide-react';
+import MembersModal from './MembersModal';
 import LiquidGlass from './LiquidGlass';
+import GroupCardRSVP from './GroupCardRSVP';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 export default function GroupCard({ group }) {
+  const { user } = useAuth?.() || { user: null };
+  const [isMembersOpen, setIsMembersOpen] = React.useState(false);
   // Display the first 3-4 member avatars
   const displayMembers = group.members?.slice(0, 4) || [];
   const remainingCount = (group.members?.length || 0) - displayMembers.length;
@@ -24,12 +29,6 @@ export default function GroupCard({ group }) {
     return `${Math.floor(diffInMinutes / 1440)}d ago`;
   };
 
-  const handleJoinClick = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-    // TODO: Implement join/leave functionality
-    console.log(`${group.joined ? 'Leave' : 'Join'} group: ${group.name}`);
-  };
 
   return (
     <Link href={`/groups/${group.id}`} className="block h-full">
@@ -49,11 +48,17 @@ export default function GroupCard({ group }) {
 
           {/* Members Section - Moved Below Group Name */}
           <div className="flex items-center mb-3">
-            <div className="flex -space-x-3">
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsMembersOpen(true); }}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); e.stopPropagation(); setIsMembersOpen(true); } }}
+              className="flex -space-x-3 focus:outline-none"
+              aria-label="View members"
+            >
               {displayMembers.map((member, index) => (
                 <div
                   key={member.id}
-                  className="w-8 h-8 rounded-full border-2 border-background-primary overflow-hidden bg-accent-primary flex items-center justify-center"
+                  className="w-8 h-8 rounded-full border-2 border-background-primary overflow-hidden bg-background-secondary flex items-center justify-center"
                   style={{ zIndex: displayMembers.length - index }}
                 >
                                       {member.avatarUrl ? (
@@ -78,7 +83,18 @@ export default function GroupCard({ group }) {
                   </span>
                 </div>
               )}
-            </div>
+            </button>
+            {/* Members count button */}
+            <button
+              type="button"
+              onClick={(e) => { e.preventDefault(); e.stopPropagation(); setIsMembersOpen(true); }}
+              onMouseDown={(e) => { e.preventDefault(); e.stopPropagation(); }}
+              className="ml-3 flex items-center gap-2 px-2 py-1 rounded-lg bg-white/5 hover:bg-white/10 text-content-secondary"
+              aria-label="View members"
+            >
+              <Users className="w-4 h-4" />
+              <span className="text-sm">{group.memberCount || group.members?.length || 0}</span>
+            </button>
           </div>
 
           {/* Card Body - Recent Activity */}
@@ -172,7 +188,7 @@ export default function GroupCard({ group }) {
             )}
           </div>
 
-          {/* Card Footer - Activity Status and Join Button */}
+          {/* Card Footer - Activity Status and RSVP Button */}
           <div className="pt-3 border-t border-border-separator mt-auto">
             {group.nextActivity && (
               <div className="flex items-center space-x-2 mb-3">
@@ -188,20 +204,14 @@ export default function GroupCard({ group }) {
                 </div>
               </div>
             )}
-            
-            {/* Join/Joined Button */}
-            <button
-              onClick={handleJoinClick}
-              className={`w-full py-2 px-4 rounded-lg font-semibold text-sm transition-all duration-200 flex items-center justify-center space-x-2 ${
-                group.joined
-                  ? 'bg-content-secondary text-content-primary hover:bg-opacity-80'
-                  : 'bg-accent-primary text-content-primary hover:bg-opacity-90'
-              }`}
-            >
-              <Users className="w-4 h-4" />
-              <span>{group.joined ? 'Joined' : 'Join Group'}</span>
-            </button>
+            <GroupCardRSVP group={group} />
           </div>
+          {/* Members Modal */}
+          <MembersModal
+            isOpen={isMembersOpen}
+            onClose={() => setIsMembersOpen(false)}
+            members={group.members || []}
+          />
         </LiquidGlass>
       </motion.div>
     </Link>

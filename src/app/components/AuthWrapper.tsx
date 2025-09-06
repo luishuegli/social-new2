@@ -6,6 +6,8 @@ import { useAuth } from '../contexts/AuthContext';
 import LoginForm from './LoginForm';
 import SignupForm from './SignupForm';
 import AppLayout from './AppLayout';
+import { db } from '../Lib/firebase';
+import { doc, getDoc } from 'firebase/firestore';
 
 export default function AuthWrapper() {
   const { user, loading } = useAuth();
@@ -18,9 +20,16 @@ export default function AuthWrapper() {
   }, []);
 
   useEffect(() => {
-    if (mounted && user) {
-      router.replace('/home');
-    }
+    (async () => {
+      if (!mounted) return;
+      if (!user) return;
+      try {
+        const snap = await getDoc(doc(db, 'users', user.uid));
+        router.replace(snap.exists() ? '/home' : '/onboarding');
+      } catch {
+        router.replace('/home');
+      }
+    })();
   }, [mounted, user, router]);
 
   // Prevent hydration mismatch by not rendering until mounted

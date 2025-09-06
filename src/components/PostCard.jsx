@@ -38,16 +38,20 @@ export default function PostCard({ post /*: Post*/ }) {
         <div className="flex items-center mb-3 justify-between">
           <div className="flex items-center">
           {post.userAvatar && (
-                  <Image
-                    src={post.userAvatar}
-                    alt={post.userName || 'User avatar'}
-                    width={40}
-                    height={40}
-              className="rounded-full"
-            />
+            <a href={post.username ? `/u/${post.username}` : '#'}>
+              <Image
+                src={post.userAvatar}
+                alt={post.userName || 'User avatar'}
+                width={40}
+                height={40}
+                className="rounded-full"
+              />
+            </a>
           )}
           <div className="ml-3">
-            <p className="font-bold text-white">{post.userName}</p>
+            <a href={post.username ? `/u/${post.username}` : '#'} className="font-bold text-white hover:underline">
+              {post.userName}
+            </a>
             <p className="text-xs text-neutral-400">{post.timestamp}</p>
           </div>
           </div>

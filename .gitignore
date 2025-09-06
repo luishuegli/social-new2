@@ -27,6 +27,10 @@ yarn-error.log*
 
 # local env files
 .env*.local
+.env*.bak
+*.env
+*.env.*
+*.env*.bak
 
 # vercel
 .vercel
@@ -36,7 +40,7 @@ yarn-error.log*
 next-env.d.ts
 
 # Google Cloud SDK
-google-cloud-cli-darwin-x86_64.tar.gz
+google-cloud-cli-darwin-arm.tar.gz
 google-cloud-sdk/
 
 # IDE

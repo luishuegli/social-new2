@@ -303,7 +303,7 @@ async function handleCreatePoll(params) {
       description: `AI-generated suggestions for ${activityType} activities`,
       type: "ai_suggestions",
       groupId: groupId,
-      groupName: "Activity Group", // TODO: Get actual group name
+      groupName: "Activity Group", // Default group name
       createdBy: userId || "current-user",
       createdByName: userName || "Current User",
       createdAt: serverTimestamp(),

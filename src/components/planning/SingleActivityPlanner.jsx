@@ -2,30 +2,75 @@
 
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
-import { Search, MapPin, DollarSign, Users } from 'lucide-react';
-import LiquidGlass from '../ui/LiquidGlass';
+import { DollarSign } from 'lucide-react';
+
 import { useAuth } from '../../app/contexts/AuthContext';
 import { db } from '../../app/Lib/firebase';
-import { collection, addDoc, serverTimestamp } from 'firebase/firestore';
+import { collection, addDoc, serverTimestamp, doc, getDoc } from 'firebase/firestore';
 
 export default function SingleActivityPlanner({ onClose, groupId = 'group-6' }) {
   const { user } = useAuth();
   const [formData, setFormData] = useState({
     prompt: '',
-    activityType: '',
-    budget: '$',
+    budget: 'Any',
     radius: 25,
     groupSize: 2,
     suggestionCount: 3
   });
 
   const [isLoading, setIsLoading] = useState(false);
-  const [suggestions, setSuggestions] = useState([]);
-  const [showSuggestions, setShowSuggestions] = useState(false);
+
   const [generatedSuggestions, setGeneratedSuggestions] = useState([]);
   const [showApproval, setShowApproval] = useState(false);
   const [durationMinutes, setDurationMinutes] = useState(60);
   const [coords, setCoords] = useState(null);
+  const [exclude, setExclude] = useState({ names: [], ids: [] });
+
+  // Replace a suggestion with a fresh alternative (keeps list length constant)
+  const replaceWithAlternative = async (replaceIndex, clicked) => {
+    try {
+      const nextExclude = {
+        names: Array.from(new Set([...(exclude.names || []), String(clicked?.name || '').toLowerCase()])),
+        ids: Array.from(new Set([...(exclude.ids || []), clicked?.placeId].filter(Boolean)))
+      };
+      setExclude(nextExclude);
+
+      const resp = await fetch('/api/generate-suggestions', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          prompt: formData.prompt,
+          budget: formData.budget,
+          radius: formData.radius,
+          groupSize: formData.groupSize,
+          suggestionCount: 1,
+          lat: coords?.lat,
+          lng: coords?.lng,
+          excludeKeys: nextExclude.names,
+          excludePlaceIds: nextExclude.ids,
+        })
+      });
+      const data = await resp.json();
+      const fresh = Array.isArray(data?.suggestions) ? data.suggestions[0] : null;
+      if (!fresh) {
+        // If backend had nothing else, just remove the card
+        setGeneratedSuggestions((prev) => prev.filter((_, i) => i !== replaceIndex));
+        return;
+      }
+      const distanceKm = coords && typeof fresh.lat === 'number' && typeof fresh.lng === 'number'
+        ? haversineKm(coords, { lat: fresh.lat, lng: fresh.lng })
+        : null;
+      const replacement = { ...fresh, distanceKm };
+      setGeneratedSuggestions((prev) => {
+        const next = [...prev];
+        next[replaceIndex] = replacement;
+        return next;
+      });
+    } catch (_) {
+      // On error, remove the card to avoid blocking the user
+      setGeneratedSuggestions((prev) => prev.filter((_, i) => i !== replaceIndex));
+    }
+  };
 
   function haversineKm(a, b) {
     if (!a || !b || typeof a.lat !== 'number' || typeof a.lng !== 'number' || typeof b.lat !== 'number' || typeof b.lng !== 'number') return null;
@@ -42,47 +87,17 @@ export default function SingleActivityPlanner({ onClose, groupId = 'group-6' }) 
     return R * c;
   }
 
-  // Focus on real activities rather than broad categories
-  const activityTypes = [
-    'Golf', 'Mini Golf', 'Bowling', 'Escape Room', 'Karaoke', 'Arcade', 'Go Karting', 'Laser Tag', 'Trampoline Park',
-    'Hiking', 'Rock Climbing', 'Indoor Climbing', 'Kayaking', 'Stand Up Paddleboarding', 'Boat Tour', 'Bike Tour',
-    'Tennis', 'Pickleball', 'Basketball', 'Soccer', 'Yoga Class', 'Dance Class', 'Gym Session',
-    'Cooking Class', 'Wine Tasting', 'Brewery Tour', 'Coffee Tasting', 'Food Tour',
-    'Museum', 'Art Gallery', 'Painting Class', 'Pottery Class', 'Live Music', 'Comedy Show', 'Movie Night', 'Theater',
-    'Spa Day', 'Picnic', 'Board Games Cafe', 'Zoo', 'Aquarium', 'Shopping'
-  ];
+
 
   const budgetOptions = [
     { value: 'Free', label: 'Free', icon: null, color: 'text-white' },
     { value: '$', label: 'Inexpensive', icon: DollarSign, color: 'text-white' },
     { value: '$$', label: 'Moderate', icon: DollarSign, color: 'text-white' },
-    { value: '$$$', label: 'Pricey', icon: DollarSign, color: 'text-white' }
+    { value: '$$$', label: 'Pricey', icon: DollarSign, color: 'text-white' },
+    { value: 'Any', label: 'No Budget Limit', icon: DollarSign, color: 'text-white' }
   ];
 
-  const handleActivityTypeChange = (value) => {
-    setFormData(prev => ({ ...prev, activityType: value }));
-    setShowSuggestions(false);
-  };
 
-  const handleActivityTypeInput = (value) => {
-    setFormData(prev => ({ ...prev, activityType: value }));
-    
-    if (value.trim()) {
-      const filtered = activityTypes.filter(type => 
-        type.toLowerCase().includes(value.toLowerCase())
-      );
-      // If no predefined activity matches, still allow using the free text
-      if (filtered.length === 0) {
-        setSuggestions([value.trim()]);
-      } else {
-        setSuggestions(filtered);
-      }
-      setShowSuggestions(true);
-    } else {
-      setSuggestions([]);
-      setShowSuggestions(false);
-    }
-  };
 
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -124,13 +139,14 @@ export default function SingleActivityPlanner({ onClose, groupId = 'group-6' }) 
         },
         body: JSON.stringify({
           prompt: formData.prompt,
-          activityType: formData.activityType,
           budget: formData.budget,
           radius: formData.radius,
           groupSize: formData.groupSize,
           suggestionCount: formData.suggestionCount,
           lat: coords?.lat,
-          lng: coords?.lng
+          lng: coords?.lng,
+          excludeKeys: exclude.names,
+          excludePlaceIds: exclude.ids
         })
       });
 
@@ -214,8 +230,8 @@ export default function SingleActivityPlanner({ onClose, groupId = 'group-6' }) 
 
       // Create poll directly with client SDK so user auth is used in rules
       const pollData = {
-        title: `AI Suggestions: ${formData.prompt || formData.activityType || 'Activity'}`,
-        description: `Based on your preferences: ${formData.budget} budget, ${formData.radius}km radius, ${formData.groupSize} people`,
+        title: `AI Suggestions: ${formData.prompt || 'Activity'}`,
+        description: `Based on your preferences: ${formData.budget === 'Any' ? 'No budget limit' : formData.budget + ' budget'}, ${formData.radius}km radius, ${formData.groupSize} people`,
         type: 'ai_suggestions',
         groupId,
         createdBy: user.uid,
@@ -236,16 +252,27 @@ export default function SingleActivityPlanner({ onClose, groupId = 'group-6' }) 
 
       const pollRef = await addDoc(collection(db, 'polls'), pollData);
 
-      // Create related message in group chat
-      await addDoc(collection(db, 'groups', groupId, 'messages'), {
-        type: 'ai_suggestions',
-        pollId: pollRef.id,
-        content: `🤖 AI Suggestions: ${(formData.prompt || formData.activityType || 'Activity')} - ${generatedSuggestions.length} options found`,
-        senderId: user.uid,
-        senderName: user.displayName || user.email || 'User',
-        timestamp: serverTimestamp(),
-        groupId,
-      });
+      // Create related message in group chat (only if user is a group member)
+      try {
+        const groupRef = doc(db, 'groups', groupId);
+        const groupSnap = await getDoc(groupRef);
+        const isMember = groupSnap.exists() && Array.isArray(groupSnap.data()?.members) && groupSnap.data().members.includes(user.uid);
+        if (isMember) {
+          await addDoc(collection(db, 'groups', groupId, 'messages'), {
+            type: 'ai_suggestions',
+            pollId: pollRef.id,
+            content: `🤖 AI Suggestions: ${(formData.prompt || 'Activity')} - ${generatedSuggestions.length} options found`,
+            senderId: user.uid,
+            senderName: user.displayName || user.email || 'User',
+            timestamp: serverTimestamp(),
+            groupId,
+          });
+        } else {
+          console.warn('Skipping chat message: user is not a member of this group');
+        }
+      } catch (e) {
+        console.warn('Non-blocking: failed to post chat message', e);
+      }
       
       // Show success message before closing
       alert(`🎉 Great! AI suggestions poll created successfully!\n\nA poll with ${generatedSuggestions.length} activity options has been created in your group chat. Check it out!`);
@@ -285,41 +312,7 @@ export default function SingleActivityPlanner({ onClose, groupId = 'group-6' }) 
           />
         </div>
 
-        {/* Activity Type with Autocomplete */}
-        <div className="space-y-2">
-          <label className="block text-sm font-medium text-white">
-            Activity Type (optional)
-          </label>
-          <div className="relative">
-            <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-white/50" />
-              <input
-                type="text"
-                value={formData.activityType}
-                onChange={(e) => handleActivityTypeInput(e.target.value)}
-                onFocus={() => setShowSuggestions(true)}
-                placeholder="Search for activity types..."
-                className="w-full pl-10 pr-4 py-3 bg-white/10 border border-white/20 rounded-lg text-white placeholder-white/50 focus:outline-none focus:ring-2 focus:ring-accent-primary focus:border-transparent"
-              />
-            </div>
-            
-            {/* Autocomplete Suggestions */}
-            {showSuggestions && suggestions.length > 0 && (
-              <div className="absolute top-full left-0 right-0 mt-1 bg-white/10 backdrop-blur-sm border border-white/20 rounded-lg overflow-hidden z-10">
-                {suggestions.map((suggestion, index) => (
-                  <button
-                    key={index}
-                    type="button"
-                    onClick={() => handleActivityTypeChange(suggestion)}
-                    className="w-full px-4 py-3 text-left text-white hover:bg-white/20 transition-colors duration-200"
-                  >
-                    {suggestion}
-                  </button>
-                ))}
-              </div>
-            )}
-          </div>
-        </div>
+
 
         {/* Budget Segmented Controls */}
         <div className="space-y-2">
@@ -336,7 +329,7 @@ export default function SingleActivityPlanner({ onClose, groupId = 'group-6' }) 
                   onClick={() => setFormData(prev => ({ ...prev, budget: option.value }))}
                   className={`p-3 rounded-lg border transition-all ${
                     formData.budget === option.value
-                      ? 'bg-accent-primary border-accent-primary text-white'
+                      ? 'bg-content-secondary border-content-secondary text-white'
                       : 'bg-white/10 border-white/20 text-neutral-300 hover:bg-white/20'
                   }`}
                 >
@@ -418,7 +411,7 @@ export default function SingleActivityPlanner({ onClose, groupId = 'group-6' }) 
         <button
           type="submit"
           disabled={isLoading}
-          className="w-full py-4 px-6 bg-accent-primary text-white font-semibold rounded-lg hover:bg-accent-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+          className="w-full py-4 px-6 bg-white/10 text-white font-semibold rounded-lg hover:bg-white/20 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
         >
           {isLoading ? (
             <div className="flex items-center justify-center space-x-2">
@@ -463,6 +456,9 @@ export default function SingleActivityPlanner({ onClose, groupId = 'group-6' }) 
                   <div className="flex-1">
                     <h4 className="font-semibold text-white mb-1">{suggestion.name}</h4>
                     <p className="text-sm text-white/70">{suggestion.description}</p>
+                    {suggestion.reason && (
+                      <p className="text-xs text-white/60 mt-1 italic">Why: {suggestion.reason}</p>
+                    )}
                     {typeof suggestion.distanceKm === 'number' && (
                       <p className="text-xs text-white/60 mt-1">{suggestion.distanceKm.toFixed(1)} km away</p>
                     )}
@@ -508,6 +504,16 @@ export default function SingleActivityPlanner({ onClose, groupId = 'group-6' }) 
                     >
                       👎
                     </button>
+                    <button
+                      type="button"
+                      onClick={async (e) => {
+                        e.stopPropagation();
+                        await replaceWithAlternative(index, suggestion);
+                      }}
+                      className="px-2 py-1 rounded bg-white/10 text-white border border-white/20 text-xs hover:bg-white/20"
+                    >
+                      Not this
+                    </button>
                   </div>
                 </div>
               </motion.div>
@@ -547,7 +553,7 @@ export default function SingleActivityPlanner({ onClose, groupId = 'group-6' }) 
             <button
               onClick={handleApproveSuggestions}
               disabled={isLoading}
-              className="flex-1 py-3 px-6 bg-accent-primary text-white font-semibold rounded-lg hover:bg-accent-primary/90 disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
+              className="flex-1 py-3 px-6 bg-white/10 text-white font-semibold rounded-lg hover:bg-white/20 backdrop-blur-sm disabled:opacity-50 disabled:cursor-not-allowed transition-all duration-200"
             >
               {isLoading ? (
                 <div className="flex items-center justify-center space-x-2">
