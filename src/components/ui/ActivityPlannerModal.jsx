@@ -5,7 +5,6 @@ import { motion, AnimatePresence } from 'framer-motion';
 import { X, Sparkles, Calendar, Users, MapPin, Clock, DollarSign } from 'lucide-react';
 import LiquidGlass from './LiquidGlass';
 import SingleActivityPlanner from '../planning/SingleActivityPlanner';
-import HolidayPlanner from '../planning/HolidayPlanner';
 import ManualPollCreator from '../planning/ManualPollCreator';
 
 export default function ActivityPlannerModal({ isOpen, onClose }) {
@@ -32,14 +31,6 @@ export default function ActivityPlannerModal({ isOpen, onClose }) {
       icon: Sparkles,
       color: 'from-blue-500 to-purple-600',
       description: 'Get personalized recommendations based on your group\'s interests and preferences.'
-    },
-    {
-      id: 'holiday',
-      title: 'A Holiday',
-      subtitle: 'Plan multi-day adventures with collaborative itinerary',
-      icon: Calendar,
-      color: 'from-green-500 to-teal-600',
-      description: 'Create immersive travel experiences with real-time collaboration and detailed planning.'
     },
     {
       id: 'manualPoll',
@@ -70,7 +61,7 @@ export default function ActivityPlannerModal({ isOpen, onClose }) {
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 20 }}
             transition={{ duration: 0.3 }}
-            className="relative w-full max-w-4xl max-h-[90vh] overflow-hidden"
+            className="relative w-full max-w-3xl max-h-[90vh] overflow-hidden"
           >
             <LiquidGlass className="p-6 max-h-[90vh] overflow-y-auto">
               {/* Header */}
@@ -109,7 +100,7 @@ export default function ActivityPlannerModal({ isOpen, onClose }) {
               {/* Content */}
               {!currentFlow ? (
                 // Initial Choice Screen
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-6 max-w-3xl mx-auto">
                   {planningOptions.map((option, index) => {
                     const IconComponent = option.icon;
                     return (
@@ -156,17 +147,7 @@ export default function ActivityPlannerModal({ isOpen, onClose }) {
                     </motion.div>
                   )}
 
-                  {currentFlow === 'holiday' && (
-                    <motion.div
-                      key="holiday"
-                      initial={{ opacity: 0, x: 20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      exit={{ opacity: 0, x: -20 }}
-                      transition={{ duration: 0.3 }}
-                    >
-                      <HolidayPlanner onClose={handleClose} />
-                    </motion.div>
-                  )}
+                  {/* Holiday planner removed for MVP; will return in v2 */}
 
                   {currentFlow === 'manualPoll' && (
                     <motion.div

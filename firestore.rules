@@ -35,9 +35,21 @@ service cloud.firestore {
       // DEV: allow any authenticated user to read groups
       allow read: if isAuthenticated();
       allow create: if isAuthenticated();
-      // DEV: allow a user to add themselves to the members array
-      allow update: if isAuthenticated() &&
-        (request.resource.data.members != null && request.auth.uid in request.resource.data.members);
+      // allow users to join/leave by updating members array
+      allow update: if isAuthenticated() && (
+        // join: add caller to members
+        (
+          !(request.auth.uid in resource.data.members) &&
+          request.resource.data.members.size() == resource.data.members.size() + 1 &&
+          request.auth.uid in request.resource.data.members
+        ) ||
+        // leave: remove caller from members
+        (
+          (request.auth.uid in resource.data.members) &&
+          request.resource.data.members.size() == resource.data.members.size() - 1 &&
+          !(request.auth.uid in request.resource.data.members)
+        )
+      );
       // keep delete restricted to members
       allow delete: if isAuthenticated() && isGroupMember(groupId);
       
@@ -66,7 +78,20 @@ service cloud.firestore {
     }
     
     match /posts/{postId} {
-      allow read: if isAuthenticated();
+      // Read rules based on per-post visibility
+      function isOwner() {
+        return isAuthenticated() && request.auth.uid == resource.data.authorId;
+      }
+      function isPublic() {
+        return resource.data.visibility == 'public' || !('visibility' in resource.data);
+      }
+      // NOTE: Follower-based reads require a followers graph. Until that exists,
+      // we restrict 'followers' to owner only (safe default). Client will also filter.
+      function isFollowersAllowed() {
+        return false; // TODO: enable when followers graph is available
+      }
+
+      allow read: if isPublic() || isOwner() || isFollowersAllowed();
       allow create: if isAuthenticated() && 
         request.resource.data.authorId == request.auth.uid;
       allow update, delete: if isAuthenticated() && 

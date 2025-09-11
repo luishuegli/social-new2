@@ -180,6 +180,14 @@ export default function GroupCard({ group }) {
                     </p>
                   </div>
                 )}
+
+                {group.latestActivity.type === 'join' && (
+                  <div className="space-y-1">
+                    <p className="text-sm text-content-secondary">
+                      <span className="font-semibold text-content-primary">{group.latestActivity.author || 'Someone'}</span> joined the group
+                    </p>
+                  </div>
+                )}
               </div>
             ) : (
               <p className="text-content-secondary text-sm leading-relaxed line-clamp-3">

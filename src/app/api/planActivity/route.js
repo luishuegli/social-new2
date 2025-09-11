@@ -18,8 +18,6 @@ export async function POST(request) {
     switch (flow) {
       case 'singleActivity':
         return await handleSingleActivity(params);
-      case 'holiday':
-        return await handleHolidayPlanning(params);
       case 'manualPoll':
         return await handleManualPoll(params);
       case 'createPoll':
@@ -125,26 +123,7 @@ async function handleSingleActivity(params) {
   }
 }
 
-async function handleHolidayPlanning(params) {
-  const { destination, startDate, endDate, groupSize, vibe } = params;
-  
-  console.log('✈️ Processing holiday planning request:', params);
-
-  try {
-    // Mock destination suggestions
-    const destinations = await generateDestinationSuggestions(destination, vibe);
-    
-    return NextResponse.json({
-      success: true,
-      destinations: destinations,
-      message: 'Holiday destinations generated successfully'
-    });
-
-  } catch (error) {
-    console.error('❌ Error generating holiday suggestions:', error);
-    throw new Error('Failed to generate holiday suggestions');
-  }
-}
+// Holiday planning handler removed for MVP (v2 feature)
 
 async function handleManualPoll(params) {
   const { title, description, options, groupId, userId, userName } = params;

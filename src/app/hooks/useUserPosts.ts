@@ -30,6 +30,9 @@ export function useUserPosts(userId?: string) {
           likes: data.likes || 0,
           comments: data.comments || 0,
           isLiked: false,
+          // include metadata so filters/badges work
+          postType: (data.postType as 'Collaborative' | 'Individual' | undefined) || 'Individual',
+          authenticityType: data.authenticityType as 'Live Post' | 'Later Post' | undefined,
         });
       });
       setPosts(items);

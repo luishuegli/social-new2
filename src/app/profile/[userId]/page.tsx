@@ -11,7 +11,9 @@ import { useUserProfile } from '@/app/hooks/useUserProfile';
 import { useUserGroups } from '@/app/hooks/useUserGroups';
 import { useUserPosts } from '@/app/hooks/useUserPosts';
 import GroupCard from '@/components/ui/GroupCard';
-import PostCard from '@/components/PostCard';
+import PortfolioFilter from '@/components/profile/PortfolioFilter';
+import PortfolioPostCard from '@/components/profile/PortfolioPostCard';
+import Link from 'next/link';
 
 // Animation variants
 const containerVariants: Variants = {
@@ -82,6 +84,7 @@ export default function UserProfilePage() {
   };
 
   const [activeTab, setActiveTab] = React.useState<'portfolio' | 'groups'>('portfolio');
+  const [filter, setFilter] = React.useState<'All' | 'Live' | 'Collaborative'>('All');
 
   return (
     <AppLayout>
@@ -177,22 +180,57 @@ export default function UserProfilePage() {
           {/* Tab Content */}
           <motion.div variants={itemVariants}>
             {activeTab === 'portfolio' ? (
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                {posts.map((p: any) => (
-                  <PostCard key={p.id} post={{
-                    id: p.id,
-                    imageUrl: p.imageUrl,
-                    userAvatar: user.avatar,
-                    userName: user.name,
-                    timestamp: new Date().toLocaleString(),
-                    content: (p as any).description || (p as any).activityTitle || '',
-                    likes: p.likes || 0,
-                    comments: p.comments || 0,
-                  }} />
-                ))}
-                {posts.length === 0 && (
-                  <LiquidGlass className="p-6 text-center text-content-secondary">No posts yet.</LiquidGlass>
-                )}
+              <div>
+                <div className="mb-4">
+                  <PortfolioFilter activeFilter={filter} onFilterChange={setFilter} />
+                </div>
+                {(() => {
+                  const filtered = posts.filter((p: any) => {
+                    if (filter === 'Live') return p?.authenticityType === 'Live Post';
+                    if (filter === 'Collaborative') return p?.postType === 'Collaborative';
+                    return true;
+                  });
+
+                  if (filtered.length === 0) {
+                    return (
+                      <div className="max-w-xl mx-auto">
+                        <div className="break-inside-avoid">
+                          <LiquidGlass className="p-6 text-center">
+                            <div className="space-y-4">
+                              <p className="text-content-primary">Your Portfolio is waiting. Share your first activity to begin building the story of your life.</p>
+                              <Link href="/posts/create" className="inline-block px-5 py-2 rounded-lg liquid-glass text-content-primary font-semibold">Create your first post</Link>
+                            </div>
+                          </LiquidGlass>
+                        </div>
+                      </div>
+                    );
+                  }
+
+                  return (
+                    <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 [column-fill:_balance]">{/* masonry columns */}
+                      {filtered.map((p: any) => {
+                        const isCollab = p?.postType === 'Collaborative';
+                        const wrapperClasses = isCollab ? 'break-inside-avoid mb-4 sm:col-span-2' : 'break-inside-avoid mb-4';
+                        const forwarded = {
+                          id: p.id,
+                          imageUrl: p.imageUrl,
+                          userAvatar: user.avatar,
+                          userName: user.name,
+                          username: profile?.username,
+                          timestamp: new Date().toLocaleString(),
+                          content: (p as any).description || (p as any).activityTitle || '',
+                          likes: p.likes || 0,
+                          comments: p.comments || 0,
+                          authenticityType: p.authenticityType,
+                          postType: p.postType,
+                        };
+                        return (
+                          <PortfolioPostCard key={p.id} post={forwarded} className={wrapperClasses} />
+                        );
+                      })}
+                    </div>
+                  );
+                })()}
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
