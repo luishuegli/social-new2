@@ -3,6 +3,7 @@
 import React from 'react';
 import AppLayout from '../components/AppLayout';
 import SettingsUsername from '../components/SettingsUsername';
+import SettingsPrivacy from '../components/SettingsPrivacy';
 import { useAuth } from '../contexts/AuthContext';
 
 export default function SettingsPage() {
@@ -18,6 +19,7 @@ export default function SettingsPage() {
         {user && (
           <div className="space-y-6">
             <SettingsUsername />
+            <SettingsPrivacy />
             {/* Future settings sections: profile photo, bio, notifications, privacy */}
           </div>
         )}

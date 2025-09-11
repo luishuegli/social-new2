@@ -12,6 +12,7 @@ export default function OnboardingPage() {
   const router = useRouter();
   const [username, setUsername] = useState('');
   const [password, setPassword] = useState('');
+  const [showPw, setShowPw] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
@@ -113,13 +114,23 @@ export default function OnboardingPage() {
         )}
 
         <label className="block text-sm mb-2 text-content-secondary">Password (optional)</label>
-        <input
-          type="password"
-          value={password}
-          onChange={(e) => setPassword(e.target.value)}
-          className="w-full mb-6 px-4 py-3 rounded-lg bg-background-secondary text-content-primary outline-none"
-          placeholder="Create a password"
-        />
+        <div className="relative mb-6">
+          <input
+            type={showPw ? 'text' : 'password'}
+            value={password}
+            onChange={(e) => setPassword(e.target.value)}
+            className="w-full px-4 py-3 pr-12 rounded-lg bg-background-secondary text-content-primary outline-none"
+            placeholder="Create a password"
+          />
+          <button
+            type="button"
+            onClick={() => setShowPw((v) => !v)}
+            className="absolute right-2 top-1/2 -translate-y-1/2 px-2 py-1 text-sm text-content-secondary hover:text-content-primary"
+            aria-label={showPw ? 'Hide password' : 'Show password'}
+          >
+            {showPw ? 'Hide' : 'Show'}
+          </button>
+        </div>
 
         {error && <div className="mb-4 text-red-400 text-sm">{error}</div>}
 

@@ -75,31 +75,42 @@ export default function AIPlannerForm({ onGenerateSuggestions }) {
 
           {/* Budget */}
           <div className="space-y-2">
-            <label className="block text-sm font-medium text-white">
-              Budget
-            </label>
-            <div className="grid grid-cols-4 gap-2">
-              {budgetOptions.map(option => {
-                const IconComponent = option.icon;
-                return (
+            <div className="flex items-center justify-between">
+              <label className="block text-sm font-medium text-white">Budget</label>
+              <div className="flex items-center gap-2">
+                {formData.budget !== 'Any' && (
+                  <span className="px-2 py-1 rounded-full bg-white/10 border border-white/20 text-white text-xs">
+                    {formData.budget === 'Free' ? 'Free' : formData.budget}
+                  </span>
+                )}
+                <button
+                  type="button"
+                  onClick={() => updateFormData('budget', formData.budget === 'Any' ? '$' : 'Any')}
+                  className="px-3 py-1 rounded-lg bg-white/10 text-white text-xs border border-white/20 hover:bg-white/20"
+                >
+                  {formData.budget === 'Any' ? 'Choose budget' : 'Set Any'}
+                </button>
+              </div>
+            </div>
+            {formData.budget !== 'Any' && (
+              <div className="grid grid-cols-4 gap-3 pb-1">
+                {budgetOptions.filter(o => o.value !== 'Any').map(option => (
                   <button
                     key={option.value}
                     type="button"
                     onClick={() => updateFormData('budget', option.value)}
-                    className={`p-3 rounded-lg border transition-all ${
-                      formData.budget === option.value
-                        ? 'bg-content-secondary border-content-secondary text-white'
-                        : 'bg-white/10 border-white/20 text-neutral-300 hover:bg-white/20'
+                    className={`px-4 py-3 rounded-lg border whitespace-nowrap w-full ${
+                      formData.budget === option.value ? 'bg-content-secondary border-content-secondary text-white' : 'bg-white/10 border-white/20 text-neutral-300 hover:bg-white/20'
                     }`}
                   >
-                    <div className="flex justify-center mb-1">
-                      <IconComponent className={`w-5 h-5 ${option.color}`} />
+                    <div className="text-center">
+                      <div className="text-lg font-bold">{option.value === 'Free' ? 'Free' : option.value}</div>
+                      <div className="text-xs opacity-80">{option.label}</div>
                     </div>
-                    <div className="text-xs text-center">{option.label}</div>
                   </button>
-                );
-              })}
-            </div>
+                ))}
+              </div>
+            )}
           </div>
 
           {/* Radius */}

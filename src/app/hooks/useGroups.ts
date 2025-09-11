@@ -159,13 +159,19 @@ export function useGroups() {
               } catch {}
               // Seniority (join dates) if available in subcollection `groups/{id}/members/{uid}.joinedAt`
               let memberIds: string[] = groupIdToMemberIds.get(group.id) || [];
+              let latestJoinUid: string | undefined = undefined;
+              let latestJoinMs: number = 0;
               try {
                 const membersRef = collection(db, 'groups', group.id, 'members');
                 const membersSnap = await getDocs(membersRef);
                 if (!membersSnap.empty) {
                   const ordered = membersSnap
                     .docs
-                    .map(d => ({ id: d.id, joinedAt: (d.data() as any)?.joinedAt?.toMillis?.() || 0 }))
+                    .map(d => {
+                      const ts = (d.data() as any)?.joinedAt?.toMillis?.() || 0;
+                      if (ts > latestJoinMs) { latestJoinMs = ts; latestJoinUid = d.id; }
+                      return ({ id: d.id, joinedAt: ts });
+                    })
                     .sort((a, b) => a.joinedAt - b.joinedAt)
                     .map(d => d.id);
                   if (ordered.length > 0) memberIds = ordered;
@@ -177,8 +183,10 @@ export function useGroups() {
               if (latestActorId) {
                 prioritized = [latestActorId].concat(prioritized.filter((id) => id !== latestActorId));
               }
+              if (latestJoinUid && !prioritized.includes(latestJoinUid)) {
+                prioritized.unshift(latestJoinUid);
+              }
 
-              const usersRef = collection(db, 'users');
               const selectedIds = prioritized.slice(0, 6);
               const profiles: any[] = [];
               for (const uid of selectedIds) {
@@ -193,6 +201,22 @@ export function useGroups() {
                   profiles.push({ id: uid, name: 'User', avatarUrl: '' });
                 }
               }
+              // If the most recent join is newer than latest message/post, surface it as activity
+              try {
+                const currentTs = latestActivity?.timestamp ? new Date(latestActivity.timestamp as any).getTime() : 0;
+                if (latestJoinMs && latestJoinMs > currentTs) {
+                  const joinedProfile = profiles.find(p => p.id === latestJoinUid);
+                  latestActivity = {
+                    type: 'join' as const,
+                    author: joinedProfile?.name || 'Someone',
+                    content: 'joined the group',
+                    timestamp: new Date(latestJoinMs),
+                    imageUrl: undefined,
+                    pollQuestion: undefined,
+                  } as unknown as LatestActivity;
+                }
+              } catch {}
+
               return { ...group, members: profiles, latestActivity: latestActivity || group.latestActivity } as Group;
             } catch {
               return group;

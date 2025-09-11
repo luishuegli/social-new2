@@ -7,6 +7,7 @@ import { db, storage } from '@/app/Lib/firebase';
 import { addDoc, collection, serverTimestamp } from 'firebase/firestore';
 import { getDownloadURL, ref, uploadBytes } from 'firebase/storage';
 import { useRouter } from 'next/navigation';
+import CameraCapture from '@/app/components/CameraCapture';
 
 type ActivityFormState = {
   title: string;
@@ -31,7 +32,10 @@ export default function CreatePostPage() {
   });
 
   const [imageFile, setImageFile] = useState<File | null>(null);
+  const [liveBlob, setLiveBlob] = useState<Blob | null>(null);
+  const [cameFromLive, setCameFromLive] = useState(false);
   const [caption, setCaption] = useState('');
+  const [visibility, setVisibility] = useState<'public' | 'followers' | 'private'>('public');
 
   const canContinueFromActivity = useMemo(() => {
     return (
@@ -79,7 +83,9 @@ export default function CreatePostPage() {
         description: string;
         imageUrl?: string;
         media: Array<{ url: string; type: 'image' }>;
-        authenticityType: 'Later Post';
+        authenticityType: 'Live Post' | 'Later Post';
+        postType: 'Individual';
+        visibility: 'public' | 'followers' | 'private';
         timestamp: ReturnType<typeof serverTimestamp>;
         createdAt: ReturnType<typeof serverTimestamp>;
         likes: number;
@@ -102,8 +108,9 @@ export default function CreatePostPage() {
         media: uploadedUrl ? [{ url: uploadedUrl, type: 'image' }] : [],
 
         // Authenticity
-        authenticityType: 'Later Post' as const,
+        authenticityType: (cameFromLive ? 'Live Post' : 'Later Post') as const,
         postType: 'Individual' as const,
+        visibility,
 
         // Meta
         timestamp: serverTimestamp(),
@@ -239,15 +246,29 @@ export default function CreatePostPage() {
         {step === 'live' && (
           <div className="liquid-glass p-4 sm:p-6 lg:p-8 space-y-6">
             <h2 className="text-heading-2 font-semibold text-content-primary">Live Post</h2>
-            <p className="text-content-secondary">
-              Live Post creation (camera access) will be implemented here.
-            </p>
+            <CameraCapture onCapture={(blob) => setLiveBlob(blob)} />
+            <div className="text-content-secondary text-sm">Capture a photo, then continue to caption and post.</div>
             <div className="flex justify-between">
               <button
                 onClick={() => setStep('choice')}
                 className="px-4 py-2 rounded-card text-content-secondary hover:bg-background-secondary"
               >
                 Back
+              </button>
+              <button
+                onClick={() => {
+                  if (liveBlob) {
+                    // Convert Blob to File-like object for reuse of upload logic
+                    const f = new File([liveBlob], `live_${Date.now()}.jpg`, { type: 'image/jpeg' });
+                    setImageFile(f);
+                    setCameFromLive(true);
+                    setStep('later');
+                  }
+                }}
+                disabled={!liveBlob}
+                className="px-4 py-2 rounded-card font-semibold bg-accent-primary text-content-primary hover:bg-opacity-80 disabled:opacity-60"
+              >
+                Continue
               </button>
             </div>
           </div>
@@ -257,6 +278,20 @@ export default function CreatePostPage() {
         {step === 'later' && (
           <div className="liquid-glass p-4 sm:p-6 lg:p-8 space-y-6">
             <h2 className="text-heading-2 font-semibold text-content-primary">Later Post</h2>
+
+            <div>
+              <label className="block text-content-secondary mb-1">Visibility</label>
+              <select
+                value={visibility}
+                onChange={(e) => setVisibility(e.target.value as any)}
+                className="w-full px-4 py-3 bg-background-secondary border border-border-separator rounded-input text-content-primary focus:border-accent-primary focus:outline-none"
+              >
+                <option value="public">Public</option>
+                <option value="followers">Followers</option>
+                <option value="private">Private</option>
+              </select>
+              <p className="text-caption text-content-tertiary mt-1">This setting overrides your default visibility for this post only.</p>
+            </div>
 
             <div>
               <label className="block text-content-secondary mb-1">Upload Image</label>

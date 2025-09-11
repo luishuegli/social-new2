@@ -3,6 +3,7 @@
 import React, { useState } from 'react';
 import { motion } from 'framer-motion';
 import { Calendar, Users, Check, Plus } from 'lucide-react';
+import Image from 'next/image';
 import { useAuth } from '@/app/contexts/AuthContext';
 
 export default function GroupCardRSVP({ group }) {
@@ -82,13 +83,26 @@ export default function GroupCardRSVP({ group }) {
 
   return (
     <div className="space-y-2">
-      {/* Activity participants count */}
-      {group.nextActivity.participants && group.nextActivity.participants.length > 0 && (
-        <div className="flex items-center space-x-2 text-xs text-content-secondary">
-          <Users className="w-3 h-3" />
-          <span>
-            {group.nextActivity.participants.length} going
-          </span>
+      {/* Participants preview */}
+      {Array.isArray(group.nextActivity.participants) && group.nextActivity.participants.length > 0 && (
+        <div className="flex items-center justify-between">
+          <div className="flex -space-x-2">
+            {group.nextActivity.participants.slice(0,6).map((p, idx) => (
+              <div key={p.id || p.uid || idx} className="w-7 h-7 rounded-full border-2 border-background-primary overflow-hidden bg-background-secondary flex items-center justify-center" style={{ zIndex: 6 - idx }}>
+                {p.avatarUrl ? (
+                  <Image src={p.avatarUrl} alt={p.name || 'User'} width={28} height={28} className="object-cover w-full h-full" />
+                ) : (
+                  <span className="text-[10px] font-semibold text-content-primary">{(p.name || 'U').charAt(0).toUpperCase()}</span>
+                )}
+              </div>
+            ))}
+            {group.nextActivity.participants.length > 6 && (
+              <div className="w-7 h-7 rounded-full border-2 border-background-primary bg-content-secondary flex items-center justify-center">
+                <span className="text-[10px] font-semibold text-content-primary">+{group.nextActivity.participants.length - 6}</span>
+              </div>
+            )}
+          </div>
+          <div className="text-xs text-content-secondary ml-2">{group.nextActivity.participants.length} going</div>
         </div>
       )}
 

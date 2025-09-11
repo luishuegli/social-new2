@@ -4,16 +4,32 @@ import React from 'react';
 import Image from 'next/image';
 import { motion } from 'framer-motion';
 import { Users, Check } from 'lucide-react';
+import { arrayRemove, arrayUnion, doc, updateDoc } from 'firebase/firestore';
+import { db } from '@/app/Lib/firebase';
+import { useAuth } from '@/app/contexts/AuthContext';
 import LiquidGlass from '../ui/LiquidGlass';
 
-export default function GroupHeader({ group }) {
+export default function GroupHeader({ group, onLeft }) {
+  const { user } = useAuth();
   // Display the first 6 member avatars
   const displayMembers = group?.members?.slice(0, 6) || [];
   const remainingCount = (group?.members?.length || 0) - displayMembers.length;
 
-  const handleJoinClick = () => {
-    // Join/leave functionality - placeholder for future implementation
-    console.log(`${group?.joined ? 'Leave' : 'Join'} group: ${group?.name}`);
+  const handleJoinClick = async () => {
+    if (!user || !group?.id) return;
+    try {
+      const groupRef = doc(db, 'groups', group.id);
+      if (group.joined) {
+        const confirmed = typeof window !== 'undefined' ? window.confirm('Leave this group? You will stop receiving updates.') : true;
+        if (!confirmed) return;
+        await updateDoc(groupRef, { members: arrayRemove(user.uid) });
+        if (onLeft) onLeft();
+      } else {
+        await updateDoc(groupRef, { members: arrayUnion(user.uid) });
+      }
+    } catch (_) {
+      // ignore – Firestore rules will enforce permissions
+    }
   };
 
   if (!group) {
