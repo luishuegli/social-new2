@@ -6,6 +6,8 @@ export async function GET(request) {
   try {
     const { searchParams } = new URL(request.url);
     const limitParam = searchParams.get('limit');
+    const groupId = searchParams.get('groupId');
+    const activityId = searchParams.get('activityId');
     const maxPosts = limitParam ? parseInt(limitParam, 10) : 20;
 
     if (maxPosts > 100) {
@@ -15,15 +17,14 @@ export async function GET(request) {
     let snapshot;
     try {
       // Try Admin SDK first
-      snapshot = await adminDb
-        .collection('posts')
-        .orderBy('timestamp', 'desc')
-        .limit(maxPosts)
-        .get();
+      let queryRef = adminDb.collection('posts');
+      if (groupId) queryRef = queryRef.where('groupId', '==', groupId);
+      if (activityId) queryRef = queryRef.where('activityId', '==', activityId);
+      snapshot = await queryRef.orderBy('timestamp', 'desc').limit(maxPosts).get();
     } catch (adminError) {
       // Fallback: use Web SDK on the server with public env vars
       const { initializeApp, getApps } = await import('firebase/app');
-      const { getFirestore, collection, query, orderBy, limit, getDocs } = await import('firebase/firestore');
+      const { getFirestore, collection, query, orderBy, limit, getDocs, where } = await import('firebase/firestore');
 
       const firebaseConfig = {
         apiKey: process.env.NEXT_PUBLIC_FIREBASE_API_KEY,
@@ -41,7 +42,10 @@ export async function GET(request) {
       const app = getApps().length === 0 ? initializeApp(firebaseConfig) : getApps()[0];
       const db = getFirestore(app);
       const postsRef = collection(db, 'posts');
-      const q = query(postsRef, orderBy('timestamp', 'desc'), limit(maxPosts));
+      const clauses = [];
+      if (groupId) clauses.push(where('groupId', '==', groupId));
+      if (activityId) clauses.push(where('activityId', '==', activityId));
+      const q = query(postsRef, ...clauses, orderBy('timestamp', 'desc'), limit(maxPosts));
       snapshot = await getDocs(q);
     }
     const posts = [];

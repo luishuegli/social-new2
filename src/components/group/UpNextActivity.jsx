@@ -69,11 +69,16 @@ export default function UpNextActivity({ group, size = 'large', showFomo = true 
         <div className="absolute top-4 right-4 flex flex-col gap-2">
           {isHappening && (
             <motion.div
-              animate={{ scale: [1, 1.1, 1] }}
+              animate={{ 
+                boxShadow: [
+                  "0 0 0 0 rgba(34, 197, 94, 0.7)",
+                  "0 0 0 4px rgba(34, 197, 94, 0.3)",
+                  "0 0 0 0 rgba(34, 197, 94, 0.7)"
+                ]
+              }}
               transition={{ duration: 2, repeat: Infinity }}
-              className="px-3 py-1 bg-red-500 text-white text-xs font-bold rounded-full flex items-center gap-1"
+              className="px-3 py-1 bg-accent-primary text-white text-xs font-bold rounded-full flex items-center gap-1 border-2 border-green-500"
             >
-              <div className="w-2 h-2 bg-white rounded-full animate-pulse" />
               LIVE
             </motion.div>
           )}

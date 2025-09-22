@@ -5,6 +5,7 @@ import { motion, Variants } from 'framer-motion';
 import AppLayout from '../components/AppLayout';
 import PostCard from '../../components/PostCard';
 import CollaborativePostCard from '../../components/CollaborativePostCard';
+import InstagramPostCard from '../../components/ui/InstagramPostCard';
 import { usePosts } from '../hooks/usePosts';
 
 // Animation variants for staggered list animations
@@ -146,11 +147,7 @@ export default function HomePage() {
                 {post.postType === 'Collaborative' ? (
                   <CollaborativePostCard post={post} />
                 ) : (
-                  <PostCard 
-                    post={post} 
-                    onLike={handleLike}
-                    onComment={handleComment}
-                  />
+                  <InstagramPostCard post={post} />
                 )}
               </motion.div>
             ))}

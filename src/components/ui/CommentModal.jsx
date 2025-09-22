@@ -82,7 +82,7 @@ export default function CommentModal({
         text: newComment.trim(),
         authorId: user.uid,
         authorName: user.displayName || user.email || 'User',
-        authorAvatar: user.photoURL || '',
+        authorAvatar: user.profilePictureUrl || user.photoURL || '',
         createdAt: new Date()
       };
 

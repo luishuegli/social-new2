@@ -8,7 +8,7 @@ import ProfilePictureUploadModal from '@/components/profile/ProfilePictureUpload
 import CameraCapture from './CameraCapture';
 
 export default function SettingsProfilePicture() {
-  const { user, updateProfile } = useAuth();
+  const { user, firebaseUser, updateProfile } = useAuth();
   const [showModal, setShowModal] = useState(false);
   const [showCamera, setShowCamera] = useState(false);
   const [isUploading, setIsUploading] = useState(false);
@@ -27,48 +27,56 @@ export default function SettingsProfilePicture() {
   }, [error, success]);
 
   const handleFileUpload = async (croppedImageBlob: Blob) => {
-    if (!user) return;
+    if (!user || !firebaseUser) return;
 
     setIsUploading(true);
     setError(null);
     setSuccess(null);
 
     try {
-      // Create FormData with the cropped image
       const formData = new FormData();
       formData.append('profilePicture', croppedImageBlob, 'profile-picture.jpg');
 
-      // Get user token
-      const token = await user.getIdToken();
+      const token = await firebaseUser.getIdToken();
 
-      // Upload to backend
+      // Abort after 15s to avoid stuck state
+      const controller = new AbortController();
+      const timeout = setTimeout(() => controller.abort(), 15000);
+
       const response = await fetch('/api/upload-profile-picture', {
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
         },
         body: formData,
+        signal: controller.signal,
+      }).catch((err) => {
+        // Normalize abort errors
+        if ((err as any).name === 'AbortError') {
+          throw new Error('Upload timed out. Please try again.');
+        }
+        throw err;
       });
 
-      const result = await response.json();
+      clearTimeout(timeout);
 
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to upload profile picture');
+      if (!response) throw new Error('No response from server.');
+
+      const result = await response.json().catch(() => ({ success: false, error: 'Invalid server response' }));
+
+      if (!response.ok || !result?.success) {
+        throw new Error(result?.error || 'Failed to upload profile picture');
       }
 
-      // Update the user's profile picture URL in the auth context
       if (updateProfile) {
-        await updateProfile({
-          photoURL: result.profilePictureUrl,
-        });
+        await updateProfile({ profilePictureUrl: result.profilePictureUrl });
       }
 
       setSuccess('Profile picture updated successfully!');
       console.log('Profile picture uploaded successfully:', result.profilePictureUrl);
-
     } catch (err: any) {
       console.error('Error uploading profile picture:', err);
-      setError(err.message || 'Failed to upload profile picture. Please try again.');
+      setError(err?.message || 'Failed to upload profile picture. Please try again.');
     } finally {
       setIsUploading(false);
     }
@@ -112,9 +120,9 @@ export default function SettingsProfilePicture() {
           {/* Current Profile Picture */}
           <div className="flex-shrink-0 ml-4">
             <div className="w-20 h-20 rounded-full bg-accent-primary flex items-center justify-center overflow-hidden border-2 border-border-separator">
-              {user.photoURL ? (
+              {user.profilePictureUrl ? (
                 <img
-                  src={user.photoURL}
+                  src={user.profilePictureUrl}
                   alt="Profile picture"
                   className="w-full h-full object-cover"
                 />
@@ -179,7 +187,7 @@ export default function SettingsProfilePicture() {
         isOpen={showModal}
         onClose={() => setShowModal(false)}
         onSave={handleFileUpload}
-        currentImageUrl={user.photoURL || undefined}
+        currentImageUrl={user.profilePictureUrl || undefined}
       />
 
       {/* Camera Capture Modal */}

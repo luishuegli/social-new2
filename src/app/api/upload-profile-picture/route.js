@@ -97,11 +97,10 @@ export async function POST(request) {
       console.log('Using base64 fallback');
     }
 
-    // Update the user's profile in Firestore
+    // Update the user's profile in Firestore (don't update photoURL in Firebase Auth as it has length limits)
     const userRef = adminDb.collection('users').doc(userId);
     await userRef.update({
       profilePictureUrl: publicUrl,
-      photoURL: publicUrl, // Also update photoURL for consistency
       updatedAt: FieldValue.serverTimestamp(),
     });
 

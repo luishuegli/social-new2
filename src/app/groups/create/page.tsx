@@ -48,7 +48,7 @@ export default function CreateGroupPage() {
           content: 'Group created',
           author: {
             name: user.displayName || 'You',
-            avatarUrl: user.photoURL || '',
+            avatarUrl: user.profilePictureUrl || user.photoURL || '',
           },
           timestamp: serverTimestamp(),
         },
