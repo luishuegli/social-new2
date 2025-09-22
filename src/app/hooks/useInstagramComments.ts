@@ -57,7 +57,7 @@ export function useInstagramComments(postId: string) {
       console.error('Error loading comments:', error);
       setCommentState(prev => ({
         ...prev,
-        error: error.message || 'Failed to load comments',
+        error: error instanceof Error ? error.message : 'Failed to load comments',
         isLoading: false
       }));
     }
@@ -106,7 +106,7 @@ export function useInstagramComments(postId: string) {
       console.error('Error adding comment:', error);
       setCommentState(prev => ({
         ...prev,
-        error: error.message || 'Failed to post comment',
+        error: error instanceof Error ? error.message : 'Failed to post comment',
         isSubmitting: false
       }));
       throw error;

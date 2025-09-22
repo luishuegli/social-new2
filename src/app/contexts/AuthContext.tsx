@@ -146,7 +146,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // Update local user state with profilePictureUrl
       const updatedUser = {
         ...user,
-        profilePictureUrl: profile.profilePictureUrl || user.profilePictureUrl
+        profilePictureUrl: profile.profilePictureUrl || (user as ExtendedUser).profilePictureUrl
       } as ExtendedUser;
       
       setUser(updatedUser);

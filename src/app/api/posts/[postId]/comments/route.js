@@ -4,7 +4,7 @@ import { adminDb, adminAuth, FieldValue } from '../../../../Lib/firebaseAdmin';
 // GET /api/posts/[postId]/comments
 export async function GET(_request, { params }) {
   try {
-    const { postId } = params || {};
+    const { postId } = await params;
     if (!postId) {
       return NextResponse.json({ success: false, error: 'Missing postId' }, { status: 400 });
     }
@@ -30,7 +30,7 @@ export async function GET(_request, { params }) {
 // POST /api/posts/[postId]/comments
 export async function POST(request, { params }) {
   try {
-    const { postId } = params || {};
+    const { postId } = await params;
     if (!postId) {
       return NextResponse.json({ success: false, error: 'Missing postId' }, { status: 400 });
     }
@@ -55,11 +55,15 @@ export async function POST(request, { params }) {
       return NextResponse.json({ success: false, error: 'Comment too long (max 2000 chars)' }, { status: 400 });
     }
 
+    // Get user profile data for proper avatar and name
+    const userDoc = await adminDb.collection('users').doc(decoded.uid).get();
+    const userData = userDoc.exists ? userDoc.data() : {};
+    
     const comment = {
       text,
       authorId: decoded.uid,
-      authorName: decoded.name || decoded.email || 'User',
-      authorAvatar: decoded.picture || '',
+      authorName: userData.displayName || decoded.name || decoded.email || 'User',
+      authorAvatar: userData.profilePictureUrl || decoded.picture || '',
       createdAt: FieldValue.serverTimestamp(),
     };
 

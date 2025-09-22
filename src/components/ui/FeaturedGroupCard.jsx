@@ -8,6 +8,37 @@ import { Calendar, MapPin, Users, Star, ArrowRight } from 'lucide-react';
 import MembersModal from './MembersModal';
 import LiquidGlass from './LiquidGlass';
 
+// MemberAvatar component with error handling
+function MemberAvatar({ member, index, totalMembers, size = "small" }) {
+  const [imageError, setImageError] = React.useState(false);
+  const isLarge = size === "large";
+  const sizeClasses = isLarge ? "w-10 h-10" : "w-8 h-8";
+  const imageSize = isLarge ? 40 : 24;
+  const textSize = isLarge ? "text-sm" : "text-xs";
+
+  return (
+    <div
+      className={`${sizeClasses} rounded-full border-2 border-background-primary overflow-hidden bg-background-secondary flex items-center justify-center`}
+      style={{ zIndex: totalMembers - index }}
+    >
+      {member.avatarUrl && !imageError ? (
+        <Image
+          src={member.avatarUrl}
+          alt={member.name}
+          width={imageSize}
+          height={imageSize}
+          className="w-full h-full object-cover"
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <span className={`${textSize} font-semibold text-content-primary`}>
+          {member.name?.charAt(0)?.toUpperCase() || '?'}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function FeaturedGroupCard({ group }) {
   const [isMembersOpen, setIsMembersOpen] = React.useState(false);
   // Display more members for the featured card
@@ -97,25 +128,13 @@ export default function FeaturedGroupCard({ group }) {
                   aria-label="View members"
                 >
                   {displayMembers.map((member, index) => (
-                    <div
+                    <MemberAvatar
                       key={member.id}
-                      className="w-10 h-10 rounded-full border-2 border-background-primary overflow-hidden bg-accent-primary flex items-center justify-center"
-                      style={{ zIndex: displayMembers.length - index }}
-                    >
-                      {member.avatarUrl ? (
-                        <Image
-                          src={member.avatarUrl}
-                          alt={member.name}
-                          width={40}
-                          height={40}
-                          className="w-full h-full object-cover"
-                        />
-                      ) : (
-                        <span className="text-sm font-semibold text-content-primary">
-                          {member.name?.charAt(0)?.toUpperCase() || '?'}
-                        </span>
-                      )}
-                    </div>
+                      member={member}
+                      index={index}
+                      totalMembers={displayMembers.length}
+                      size="large"
+                    />
                   ))}
                   {remainingCount > 0 && (
                     <div className="w-10 h-10 rounded-full border-2 border-background-primary bg-content-secondary flex items-center justify-center">

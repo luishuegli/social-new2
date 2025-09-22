@@ -10,6 +10,33 @@ import LiquidGlass from './LiquidGlass';
 import GroupCardRSVP from './GroupCardRSVP';
 import { useAuth } from '@/app/contexts/AuthContext';
 
+// MemberAvatar component with error handling
+function MemberAvatar({ member, index, totalMembers }) {
+  const [imageError, setImageError] = React.useState(false);
+
+  return (
+    <div
+      className="w-8 h-8 rounded-full border-2 border-background-primary overflow-hidden bg-background-secondary flex items-center justify-center"
+      style={{ zIndex: totalMembers - index }}
+    >
+      {member.avatarUrl && !imageError ? (
+        <Image
+          src={member.avatarUrl}
+          alt={member.name}
+          width={24}
+          height={24}
+          className="w-full h-full object-cover"
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <span className="text-xs font-semibold text-content-primary">
+          {member.name?.charAt(0)?.toUpperCase() || '?'}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function GroupCard({ group }) {
   const { user } = useAuth?.() || { user: null };
   const [isMembersOpen, setIsMembersOpen] = React.useState(false);
@@ -56,25 +83,12 @@ export default function GroupCard({ group }) {
               aria-label="View members"
             >
               {displayMembers.map((member, index) => (
-                <div
+                <MemberAvatar
                   key={member.id}
-                  className="w-8 h-8 rounded-full border-2 border-background-primary overflow-hidden bg-background-secondary flex items-center justify-center"
-                  style={{ zIndex: displayMembers.length - index }}
-                >
-                                      {member.avatarUrl ? (
-                      <Image
-                        src={member.avatarUrl}
-                        alt={member.name}
-                        width={24}
-                        height={24}
-                        className="w-full h-full object-cover"
-                      />
-                    ) : (
-                      <span className="text-xs font-semibold text-content-primary">
-                        {member.name?.charAt(0)?.toUpperCase() || '?'}
-                      </span>
-                    )}
-                </div>
+                  member={member}
+                  index={index}
+                  totalMembers={displayMembers.length}
+                />
               ))}
               {remainingCount > 0 && (
                 <div className="w-8 h-8 rounded-full border-2 border-background-primary bg-content-secondary flex items-center justify-center">

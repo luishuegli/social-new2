@@ -26,7 +26,7 @@ export default function ActivityBar() {
       // Success - the activity context will clear the active activity
     } catch (error) {
       console.error('Failed to leave activity:', error);
-      setError(error.message || 'Failed to leave activity');
+      setError(error instanceof Error ? error.message : 'Failed to leave activity');
     } finally {
       setIsLeaving(false);
     }

@@ -9,10 +9,12 @@ import { useInstagramComments } from '@/app/hooks/useInstagramComments';
 import { useAuth } from '@/app/contexts/AuthContext';
 import LiquidGlass from './LiquidGlass';
 import CommentModal from './CommentModal';
+import PostDetailModal from './PostDetailModal';
 
 export default function InstagramPostCard({ post }) {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
+  const [showPostDetail, setShowPostDetail] = useState(false);
   const [imageError, setImageError] = useState(false);
   
   const { likeState, toggleLike } = useInstagramLike(
@@ -48,6 +50,10 @@ export default function InstagramPostCard({ post }) {
     if (!likeState.isLiked) {
       handleLike();
     }
+  };
+
+  const handleImageClick = () => {
+    setShowPostDetail(true);
   };
 
   if (!post) return null;
@@ -97,6 +103,7 @@ export default function InstagramPostCard({ post }) {
           <div 
             className="relative bg-background-secondary cursor-pointer"
             onDoubleClick={handleDoubleClick}
+            onClick={handleImageClick}
           >
             <NextImage
               src={post.imageUrl}
@@ -219,7 +226,7 @@ export default function InstagramPostCard({ post }) {
         <div className="px-4 pb-4 border-t border-border-separator pt-3">
           <div className="flex items-center space-x-3">
             <NextImage
-              src={user?.photoURL || '/default-avatar.png'}
+              src={user?.profilePictureUrl || user?.photoURL || '/default-avatar.png'}
               alt={user?.displayName || 'Your avatar'}
               width={24}
               height={24}
@@ -241,6 +248,13 @@ export default function InstagramPostCard({ post }) {
         onClose={() => setShowComments(false)}
         post={post}
         onLike={handleLike}
+      />
+
+      {/* Post Detail Modal */}
+      <PostDetailModal
+        post={post}
+        isOpen={showPostDetail}
+        onClose={() => setShowPostDetail(false)}
       />
     </>
   );

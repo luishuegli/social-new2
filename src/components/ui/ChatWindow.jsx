@@ -66,13 +66,24 @@ const ChatWindow = ({ messages = [], currentUser, onSendMessage }) => {
                 <div className="flex-shrink-0">
                   <div className="w-8 h-8 rounded-full overflow-hidden bg-white/10 backdrop-blur-sm">
                     {message.sender?.avatar ? (
-                      <Image
-                        src={message.sender.avatar}
-                        alt={message.sender.name || 'User'}
-                        width={32}
-                        height={32}
-                        className="w-full h-full object-cover"
-                      />
+                      <>
+                        <Image
+                          src={message.sender.avatar}
+                          alt={message.sender.name || 'User'}
+                          width={32}
+                          height={32}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                        <div className="w-full h-full flex items-center justify-center" style={{ display: 'none' }}>
+                          <span className="text-xs font-semibold text-white">
+                            {message.sender?.name?.charAt(0)?.toUpperCase() || '?'}
+                          </span>
+                        </div>
+                      </>
                     ) : (
                       <div className="w-full h-full flex items-center justify-center">
                         <span className="text-xs font-semibold text-white">

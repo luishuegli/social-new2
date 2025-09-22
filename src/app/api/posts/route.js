@@ -50,14 +50,44 @@ export async function GET(request) {
     }
     const posts = [];
 
+    // Get all unique author IDs for batch fetching
+    const authorIds = new Set();
+    const postsData = [];
     snapshot.forEach((docSnap) => {
       const data = docSnap.data();
+      if (data.authorId) authorIds.add(data.authorId);
+      postsData.push({ id: docSnap.id, data });
+    });
+
+    // Batch fetch author profiles
+    const authorProfiles = new Map();
+    if (authorIds.size > 0) {
+      const authorPromises = Array.from(authorIds).map(async (authorId) => {
+        try {
+          const userDoc = await adminDb.collection('users').doc(authorId).get();
+          if (userDoc.exists) {
+            const userData = userDoc.data();
+            authorProfiles.set(authorId, {
+              displayName: userData.displayName,
+              profilePictureUrl: userData.profilePictureUrl
+            });
+          }
+        } catch (error) {
+          console.error('Error fetching author profile:', error);
+        }
+      });
+      await Promise.all(authorPromises);
+    }
+
+    // Build enriched posts
+    postsData.forEach(({ id, data }) => {
+      const authorProfile = authorProfiles.get(data.authorId);
       posts.push({
-        id: docSnap.id,
-        userName: data.authorName || data.authorId || 'Anonymous User',
-        userAvatar: data.authorAvatar || '',
+        id,
+        userName: data.authorName || authorProfile?.displayName || data.authorId || 'Anonymous User',
+        userAvatar: data.authorAvatar || authorProfile?.profilePictureUrl || '',
         timestamp: data.timestamp?.toDate?.()?.toISOString?.() || new Date().toISOString(),
-        content: data.description || data.activityTitle || '',
+        content: data.description || data.activityTitle || data.text || '',
         imageUrl: data.media?.[0]?.url || data.imageUrl || null,
         likes: data.likes || 0,
         comments: data.comments || 0,
