@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '../../Lib/firebaseAdmin';
+import { FieldValue } from 'firebase-admin/firestore';
 
 export async function POST(request) {
   try {
@@ -14,9 +15,9 @@ export async function POST(request) {
       );
     }
 
-    if (!['join', 'leave'].includes(action)) {
+    if (!['join', 'leave', 'maybe'].includes(action)) {
       return NextResponse.json(
-        { error: 'Action must be "join" or "leave"' },
+        { error: 'Action must be "join", "leave" or "maybe"' },
         { status: 400 }
       );
     }
@@ -57,43 +58,62 @@ export async function POST(request) {
         date: nextActivity.date || null,
         location: nextActivity.location || '',
         participants: action === 'join' ? [userId] : [],
+        interested: action === 'maybe' ? [userId] : [],
+        left: action === 'leave' ? [userId] : [],
         status: 'planned',
         creatorId: groupData.createdBy || userId,
-        createdAt: new Date(),
-        updatedAt: new Date()
+        createdAt: FieldValue.serverTimestamp(),
+        updatedAt: FieldValue.serverTimestamp()
       });
 
       return NextResponse.json({
         success: true,
-        message: `Successfully ${action === 'join' ? 'joined' : 'left'} activity`,
+        message: `Successfully ${action === 'join' ? 'joined' : action === 'leave' ? 'left' : 'marked as maybe'} activity`,
         activityId: activityId,
-        participants: action === 'join' ? [userId] : []
+        participants: action === 'join' ? [userId] : [],
+        interested: action === 'maybe' ? [userId] : [],
+        left: action === 'leave' ? [userId] : []
       });
     }
 
     // Activity exists, update participants
     const activityData = activityDoc.data();
     let participants = activityData.participants || [];
+    let interested = activityData.interested || [];
+    let left = activityData.left || [];
 
     if (action === 'join') {
       if (!participants.includes(userId)) {
         participants.push(userId);
       }
+      // remove from other buckets
+      interested = interested.filter(id => id !== userId);
+      left = left.filter(id => id !== userId);
     } else if (action === 'leave') {
       participants = participants.filter(id => id !== userId);
+      if (!left.includes(userId)) left.push(userId);
+      interested = interested.filter(id => id !== userId);
+    } else if (action === 'maybe') {
+      if (!interested.includes(userId)) interested.push(userId);
+      participants = participants.filter(id => id !== userId);
+      left = left.filter(id => id !== userId);
     }
 
     // Update the activity
     await activityRef.update({
-      participants: participants,
-      updatedAt: new Date()
+      participants,
+      interested,
+      left,
+      updatedAt: FieldValue.serverTimestamp()
     });
 
     return NextResponse.json({
       success: true,
-      message: `Successfully ${action === 'join' ? 'joined' : 'left'} activity`,
+      message: `Successfully ${action === 'join' ? 'joined' : action === 'leave' ? 'left' : 'marked as maybe'} activity`,
       activityId: activityId,
-      participants: participants
+      participants,
+      interested,
+      left
     });
 
   } catch (error) {

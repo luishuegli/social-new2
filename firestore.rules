@@ -19,6 +19,16 @@ service cloud.firestore {
       // Allow authenticated users to read basic user profiles
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && request.auth.uid == userId;
+      
+      // Follow system
+      match /following/{followingId} {
+        allow read, write: if isAuthenticated() && request.auth.uid == userId;
+      }
+      
+      match /followers/{followerId} {
+        allow read: if isAuthenticated();
+        allow write: if isAuthenticated() && request.auth.uid == followerId;
+      }
     }
 
     // Username reservations mapping: usernames/{handle} -> { uid }
@@ -140,18 +150,24 @@ service cloud.firestore {
 
       // Allow RSVP and status transitions
       allow update: if isAuthenticated() && (
-        // RSVP join: participants grows by exactly one and includes caller
+        // RSVP actions: allow updates to participants, interested, and left arrays
         (
-          request.resource.data.diff(resource.data).changedKeys().hasOnly(['participants']) &&
-          request.resource.data.participants.size() == resource.data.participants.size() + 1 &&
-          request.auth.uid in request.resource.data.participants
-        ) ||
-        // RSVP leave: participants shrinks by exactly one and previously included caller
-        (
-          request.resource.data.diff(resource.data).changedKeys().hasOnly(['participants']) &&
-          request.resource.data.participants.size() == resource.data.participants.size() - 1 &&
-          !(request.auth.uid in request.resource.data.participants) &&
-          (request.auth.uid in resource.data.participants)
+          request.resource.data.diff(resource.data).changedKeys().subset(['participants', 'interested', 'left', 'updatedAt']) &&
+          // User can only modify their own RSVP status
+          (
+            // Join: user is in participants, not in interested/left
+            (request.auth.uid in request.resource.data.participants && 
+             !(request.auth.uid in request.resource.data.interested) && 
+             !(request.auth.uid in request.resource.data.left)) ||
+            // Maybe: user is in interested, not in participants/left  
+            (request.auth.uid in request.resource.data.interested && 
+             !(request.auth.uid in request.resource.data.participants) && 
+             !(request.auth.uid in request.resource.data.left)) ||
+            // Leave: user is in left, not in participants/interested
+            (request.auth.uid in request.resource.data.left && 
+             !(request.auth.uid in request.resource.data.participants) && 
+             !(request.auth.uid in request.resource.data.interested))
+          )
         ) ||
         // Status change to active/completed by creator or participant
         (

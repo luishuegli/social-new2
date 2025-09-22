@@ -16,20 +16,26 @@ import { useRouter } from 'next/navigation';
 import { db } from '../Lib/firebase';
 import { doc, getDoc } from 'firebase/firestore';
 
+interface ExtendedUser extends User {
+  profilePictureUrl?: string;
+}
+
 interface AuthContextType {
-  user: User | null;
+  user: ExtendedUser | null;
+  firebaseUser: User | null; // Original Firebase user for getIdToken()
   loading: boolean;
   signIn: (email: string, password: string) => Promise<void>;
   signUp: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
-  updateProfile: (profile: { displayName?: string; photoURL?: string }) => Promise<void>;
+  updateProfile: (profile: { displayName?: string; photoURL?: string; profilePictureUrl?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
 export function AuthProvider({ children }: { children: React.ReactNode }) {
   const [user, setUser] = useState<User | null>(null);
+  const [firebaseUser, setFirebaseUser] = useState<User | null>(null);
   const [loading, setLoading] = useState(true);
   const [mounted, setMounted] = useState(false);
   const router = useRouter();
@@ -37,9 +43,34 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
   useEffect(() => {
     setMounted(true);
     console.log('AuthProvider: Setting up auth state listener');
-    const unsubscribe = onAuthStateChanged(auth, (user) => {
-      console.log('AuthProvider: Auth state changed:', user ? 'User logged in' : 'No user');
-      setUser(user);
+    const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
+      console.log('AuthProvider: Auth state changed:', firebaseUser ? 'User logged in' : 'No user');
+      
+      if (firebaseUser) {
+        // Store the original Firebase user for getIdToken()
+        setFirebaseUser(firebaseUser);
+        
+        // Fetch additional user data from Firestore
+        try {
+          const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+          const userData = userDoc.data();
+          
+          // Create extended user object with Firestore data
+          const extendedUser = {
+            ...firebaseUser,
+            profilePictureUrl: userData?.profilePictureUrl
+          } as ExtendedUser;
+          
+          setUser(extendedUser);
+        } catch (error) {
+          console.error('Error fetching user profile:', error);
+          setUser(firebaseUser as ExtendedUser);
+        }
+      } else {
+        setUser(null);
+        setFirebaseUser(null);
+      }
+      
       setLoading(false);
     }, (error) => {
       console.error('AuthProvider: Auth state error:', error);
@@ -98,13 +129,27 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
-  const updateUserProfile = async (profile: { displayName?: string; photoURL?: string }) => {
+  const updateUserProfile = async (profile: { displayName?: string; photoURL?: string; profilePictureUrl?: string }) => {
     try {
       if (!user) throw new Error('No user logged in');
-      await updateProfile(user, profile);
-      // Force a refresh of the user object to reflect changes
-      await user.reload();
-      setUser({ ...user });
+      
+      // Update Firebase Auth profile (only for displayName and photoURL if provided)
+      const firebaseProfile: { displayName?: string; photoURL?: string } = {};
+      if (profile.displayName !== undefined) firebaseProfile.displayName = profile.displayName;
+      if (profile.photoURL !== undefined) firebaseProfile.photoURL = profile.photoURL;
+      
+      if (Object.keys(firebaseProfile).length > 0) {
+        await updateProfile(user, firebaseProfile);
+        await user.reload();
+      }
+      
+      // Update local user state with profilePictureUrl
+      const updatedUser = {
+        ...user,
+        profilePictureUrl: profile.profilePictureUrl || user.profilePictureUrl
+      } as ExtendedUser;
+      
+      setUser(updatedUser);
     } catch (error) {
       console.error('Update profile error:', error);
       throw error;
@@ -113,6 +158,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   const value = {
     user,
+    firebaseUser,
     loading,
     signIn,
     signUp,

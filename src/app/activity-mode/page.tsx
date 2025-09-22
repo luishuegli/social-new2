@@ -7,81 +7,165 @@ import { useActivity } from '../contexts/ActivityContext';
 import { collection, getDocs, doc, getDoc } from 'firebase/firestore';
 import { db } from '../Lib/firebase';
 import { motion } from 'framer-motion';
-import { Zap, TrendingUp, Users, Clock } from 'lucide-react';
-import FOMOActivityCard from '../../components/ui/FOMOActivityCard';
+import { Zap, TrendingUp, Users, Clock, MapPin, Calendar, User } from 'lucide-react';
+import EnhancedActivityCard from '../../components/ui/EnhancedActivityCard';
 
 export default function ActivityModePage() {
   const { user } = useAuth();
   const { startActivity, activeActivity } = useActivity();
   const [planned, setPlanned] = useState<any[]>([]);
   const [loading, setLoading] = useState(true);
+  const [isLoadingData, setIsLoadingData] = useState(false);
 
   useEffect(() => {
+    console.log('=== USEEFFECT TRIGGERED ===');
+    console.log('User loaded:', !!user?.uid, 'UID:', user?.uid);
+    console.log('Current planned state:', planned.length);
+    
+    // Don't run if user isn't loaded yet
+    if (!user?.uid) {
+      console.log('User not loaded yet, skipping activity fetch');
+      setLoading(false); // Set loading to false even if user not loaded
+      return;
+    }
+
+    // Prevent concurrent data fetches
+    if (isLoadingData) {
+      console.log('Data fetch already in progress, skipping');
+      return;
+    }
+    
     (async () => {
+      setIsLoadingData(true);
       try {
         const ref = collection(db, 'activities');
         // Include activities where user is a participant OR user is a member of the group
         // First, get the user's group ids from the server (admin-backed for reliability)
         const groupIds: string[] = [];
+        const groupInfoById: Record<string, { name: string; coverImage?: string }> = {};
+        let groupsApiSuccess = false;
         if (user?.uid) {
           try {
             const resp = await fetch(`/api/my-groups?uid=${encodeURIComponent(user.uid)}`);
+            groupsApiSuccess = resp.ok;
             if (resp.ok) {
               const json = await resp.json();
               const groups = Array.isArray(json.groups) ? json.groups : [];
-              groups.forEach((g: any) => groupIds.push(g.id));
+              groups.forEach((g: any) => {
+                groupIds.push(g.id);
+                groupInfoById[g.id] = { name: g.name || 'Group', coverImage: g.coverImage || '' };
+              });
+            } else {
+              console.error('Groups API error:', resp.status, await resp.text());
             }
-          } catch {}
+          } catch (error) {
+            console.error('Groups API fetch error:', error);
+          }
         }
 
         const snap = await getDocs(ref);
         const raw: any[] = [];
+        console.log('=== ACTIVITY MODE DEBUG ===');
+        console.log('Current user UID:', user?.uid);
         console.log('Total activities found:', snap.size);
         console.log('User groups:', groupIds);
+        console.log('Groups API success:', groupsApiSuccess);
         
         snap.forEach((d) => {
           const data = d.data() as any;
           const isPlanned = data.status === 'planned' || data.status === 'active';
           const isParticipant = (data.participants || []).includes(user?.uid);
           const isInMyGroup = groupIds.includes(data.groupId);
+          const shouldInclude = isPlanned && (isParticipant || isInMyGroup);
           
           console.log(`Activity ${d.id}:`, {
+            title: data.title,
             status: data.status,
+            groupId: data.groupId,
             isPlanned,
             isParticipant,
             isInMyGroup,
-            groupId: data.groupId,
-            participants: data.participants
+            shouldInclude,
+            participants: data.participants || []
           });
           
-          if (isPlanned && (isParticipant || isInMyGroup)) {
-            raw.push({ id: d.id, ...data });
+          if (shouldInclude) {
+            raw.push({ 
+              id: d.id, 
+              groupName: groupInfoById[data.groupId]?.name || data.groupName || 'Group',
+              ...data 
+            });
           }
         });
         
         console.log('Filtered activities:', raw.length);
-        // Enrich with participant profiles (up to 6) for avatar display
+        // Enrich with participant profiles for all RSVP states
         const enriched = await Promise.all(raw.map(async (a) => {
-          const pids: string[] = Array.isArray(a.participants) ? a.participants.slice(0, 6) : [];
-          const profiles: Array<{ id: string; name: string; avatarUrl: string }> = [];
-          for (const pid of pids) {
-            try {
-              const u = await getDoc(doc(db, 'users', pid));
-              if (u.exists()) {
-                const ud: any = u.data();
-                profiles.push({ id: u.id, name: ud.displayName || 'User', avatarUrl: ud.profilePictureUrl || '' });
-              } else {
-                profiles.push({ id: pid, name: 'User', avatarUrl: '' });
+          // Helper function to fetch user profiles
+          const fetchProfiles = async (userIds: string[]) => {
+            const profiles: Array<{ id: string; name: string; avatarUrl: string }> = [];
+            for (const uid of userIds.slice(0, 8)) { // Limit to 8 per state
+              try {
+                const u = await getDoc(doc(db, 'users', uid));
+                if (u.exists()) {
+                  const ud: any = u.data();
+                  profiles.push({ id: u.id, name: ud.displayName || 'User', avatarUrl: ud.profilePictureUrl || '' });
+                } else {
+                  profiles.push({ id: uid, name: 'User', avatarUrl: '' });
+                }
+              } catch {
+                profiles.push({ id: uid, name: 'User', avatarUrl: '' });
               }
-            } catch {
-              profiles.push({ id: pid, name: 'User', avatarUrl: '' });
             }
+            return profiles;
+          };
+
+          // Fetch profiles for each RSVP state
+          const [participantProfiles, interestedProfiles, leftProfiles] = await Promise.all([
+            fetchProfiles(a.participants || []),
+            fetchProfiles(a.interested || []),
+            fetchProfiles(a.left || [])
+          ]);
+
+          // Image enrichment
+          let imageUrl: string = a.imageUrl || '';
+          try {
+            if (!imageUrl && a.pollId) {
+              const pollSnap = await getDoc(doc(db, 'polls', a.pollId));
+              if (pollSnap.exists()) {
+                const poll: any = pollSnap.data();
+                const options: any[] = Array.isArray(poll.options) ? poll.options : [];
+                const withVotes = options.map(o => ({
+                  votes: typeof o.votes === 'number' ? o.votes : (o.voters?.length || 0),
+                  imageUrl: o.imageUrl || '',
+                }));
+                const winner = withVotes.sort((a, b) => (b.votes || 0) - (a.votes || 0))[0];
+                if (winner?.imageUrl) imageUrl = winner.imageUrl;
+              }
+            }
+          } catch (e) {
+            console.warn('Image enrich via poll failed for', a.id, e);
           }
-          return { ...a, participantProfiles: profiles };
+          if (!imageUrl) {
+            imageUrl = groupInfoById[a.groupId]?.coverImage || '';
+          }
+
+          return { 
+            ...a, 
+            participantProfiles, 
+            interestedProfiles, 
+            leftProfiles, 
+            imageUrl 
+          };
         }));
+        
+        console.log('Setting planned activities:', enriched.length);
         setPlanned(enriched);
+        console.log('Updated planned state:', enriched.length);
       } finally {
+        console.log('Setting loading to false');
         setLoading(false);
+        setIsLoadingData(false);
       }
     })();
   }, [user?.uid]);
@@ -135,6 +219,10 @@ export default function ActivityModePage() {
             <p className="text-content-secondary text-lg">
               Join live activities and connect with your community in real-time
             </p>
+            {/* Temporary debug info */}
+            <div className="mt-2 p-2 bg-red-900/20 rounded text-xs text-red-400">
+              DEBUG - Current User: {user?.uid || 'Not logged in'} | Groups: {planned.length ? 'Data loaded' : 'No data'}
+            </div>
             
             {/* Stats */}
             <div className="flex items-center space-x-6 mt-4">
@@ -153,6 +241,13 @@ export default function ActivityModePage() {
             </div>
           </div>
         </motion.div>
+
+        {/* Debug render info */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mb-4 p-2 bg-blue-900/20 rounded text-xs text-blue-400">
+            RENDER DEBUG - Loading: {loading.toString()} | DataLoading: {isLoadingData.toString()} | Planned: {planned.length} | User: {user?.uid ? 'Loaded' : 'Not loaded'}
+          </div>
+        )}
 
         {/* Activities Grid */}
         {loading ? (
@@ -215,23 +310,18 @@ export default function ActivityModePage() {
             )}
           </motion.div>
         ) : (
-          <motion.div
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-            className="space-y-4"
-          >
+          <div className="space-y-4">
+            {/* Render polished cards */}
             {planned.map((activity) => (
-              <motion.div key={activity.id} variants={itemVariants}>
-                <FOMOActivityCard
-                  activity={activity}
-                  onStartActivity={handleStartActivity}
-                  isActive={activeActivity?.id === activity.id}
-                  size="large"
-                />
-              </motion.div>
+              <EnhancedActivityCard
+                key={activity.id}
+                activity={activity}
+                onStartActivity={handleStartActivity}
+                isActive={activeActivity?.id === activity.id}
+                size="large"
+              />
             ))}
-          </motion.div>
+          </div>
         )}
       </div>
     </AppLayout>

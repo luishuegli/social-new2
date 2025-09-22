@@ -21,14 +21,14 @@ export default function AppLayout({ children }: AppLayoutProps) {
   }, []);
 
   return (
-    <div className="flex min-h-screen bg-transparent min-w-[320px]">
+    <div className="flex h-screen bg-transparent min-w-[320px] overflow-hidden">
       {/* Sidebar */}
       <div className="relative z-[1000]">
         <Sidebar isOpen={sidebarOpen} onClose={() => setSidebarOpen(false)} />
       </div>
       
       {/* Main Content */}
-      <div className="flex-1 flex flex-col lg:ml-64 min-w-0 relative z-0">
+      <div className="flex-1 flex flex-col lg:ml-64 min-w-0 relative z-0 h-screen overflow-hidden">
         {/* Top Bar */}
         <header className="liquid-glass border-b border-border-separator lg:hidden flex-shrink-0 relative z-10">
           <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">

@@ -5,6 +5,7 @@ import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 import { useAuth } from '../contexts/AuthContext';
 import { useActivity } from '../contexts/ActivityContext';
+import { useCanPostLive } from '../hooks/useCanPostLive';
 import { useUnreadSummary } from '../hooks/useUnreadSummary';
 import { 
   Home, 
@@ -29,6 +30,7 @@ interface SidebarProps {
 export default function Sidebar({ isOpen, onClose }: SidebarProps) {
   const { user, logout } = useAuth();
   const { activeActivity } = useActivity();
+  const { canPost } = useCanPostLive(activeActivity?.id);
   const pathname = usePathname();
   const unread = useUnreadSummary(user?.uid);
   const router = useRouter();
@@ -182,13 +184,14 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
       
       {/* Sidebar */}
       <div ref={sidebarRef} id="app-sidebar" className={`
-        fixed top-0 left-0 h-full z-[1000] liquid-glass-square
+        fixed top-0 left-0 h-screen z-[1000] liquid-glass-square
         ${isOpen ? 'translate-x-0' : '-translate-x-full'}
         lg:fixed lg:translate-x-0
         w-64 min-w-64 max-w-64 border-r border-border-separator
         transition-transform duration-300 ease-in-out
+        overflow-hidden
       `}>
-        <div className="flex flex-col h-full p-4 sm:p-6 min-w-0">
+        <div className="flex flex-col h-screen p-4 sm:p-6 min-w-0">
           {/* Header */}
           <div className="mb-6 sm:mb-8 flex-shrink-0">
             <div className="flex items-center justify-between">
@@ -244,11 +247,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
           {/* Quick Actions */}
           <div className="mt-6 sm:mt-8 flex-shrink-0">
-            <Link href={activeActivity ? '/posts/live/create' : '/posts/create'} className="block">
-              <div className={`w-full flex items-center justify-center space-x-3 liquid-glass text-content-primary px-4 sm:px-6 py-3 sm:py-4 font-semibold rounded-lg transition-all duration-200 hover:bg-opacity-80 ${activeActivity ? 'ring-2 ring-green-400/60 animate-pulse' : ''}`}>
-                {activeActivity ? (
+            <Link href={canPost ? '/posts/live/create' : '/posts/create'} className="block">
+              <div className={`w-full flex items-center justify-center space-x-3 liquid-glass text-content-primary px-4 sm:px-6 py-3 sm:py-4 font-semibold rounded-lg transition-all duration-200 hover:bg-opacity-80 ${canPost ? 'border-2 border-green-500' : ''}`} style={canPost ? {
+                animation: 'pulse-border 2s infinite',
+                boxShadow: '0 0 0 0 rgba(34, 197, 94, 0.7)'
+              } : {}}>
+                {canPost ? (
                   <>
-                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse flex-shrink-0"></div>
                     <span className="text-body truncate">Live Post</span>
                   </>
                 ) : (
@@ -266,14 +271,22 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             <Link href={`/profile/${user.uid}`} className="block">
               <div className="liquid-glass p-4 sm:p-6 mt-4 sm:mt-6 flex-shrink-0">
                 <div className="flex items-center justify-center min-w-0">
-                  <div className="w-12 h-12 bg-accent-primary flex items-center justify-center rounded-full flex-shrink-0 mr-3">
-                    <span className="text-content-primary font-semibold text-body">
-                      {(user?.displayName || user?.email || 'U').charAt(0).toUpperCase()}
-                    </span>
+                  <div className="w-12 h-12 bg-accent-primary flex items-center justify-center rounded-full flex-shrink-0 mr-3 overflow-hidden">
+                    {user?.profilePictureUrl ? (
+                      <img
+                        src={user.profilePictureUrl}
+                        alt="Profile picture"
+                        className="w-full h-full object-cover"
+                      />
+                    ) : (
+                      <span className="text-content-primary font-semibold text-body">
+                        {(user?.displayName || user?.email || 'U').charAt(0).toUpperCase()}
+                      </span>
+                    )}
                   </div>
                   <div className="min-w-0 text-center">
                     <p className="text-body font-semibold text-content-primary truncate">
-                      {(user as any)?.username || user?.displayName || 'User'}
+                      {user?.username || user?.displayName || 'User'}
                     </p>
                   </div>
                 </div>

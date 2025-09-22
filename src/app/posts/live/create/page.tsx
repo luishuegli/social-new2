@@ -62,7 +62,7 @@ export default function LivePostCreatePage() {
         // Author info
         authorId: user.uid,
         authorName: user.displayName || user.email || 'Anonymous',
-        authorAvatar: user.photoURL || '',
+        authorAvatar: user.profilePictureUrl || user.photoURL || '',
         
         // Activity info
         activityTitle: activity.title,

@@ -34,7 +34,13 @@ export function usePostableActivities(): {
         const items: PostableActivity[] = [];
         snap.forEach((d) => {
           const data = d.data() as any;
-          if (data?.status === 'active' && Array.isArray(data.participants) && data.participants.includes(user.uid)) {
+          const participants = Array.isArray(data.participants) ? data.participants : [];
+          const left = Array.isArray(data.left) ? data.left : [];
+          
+          // User can post to active activities where they are a participant AND not in the left list
+          if (data?.status === 'active' && 
+              participants.includes(user.uid) && 
+              !left.includes(user.uid)) {
             items.push({
               groupId: String(data.groupId || ''),
               id: d.id,

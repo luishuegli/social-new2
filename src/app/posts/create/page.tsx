@@ -97,7 +97,7 @@ export default function CreatePostPage() {
         // Author
         authorId: user.uid,
         authorName: user.displayName || user.email || 'User',
-        authorAvatar: user.photoURL || '',
+        authorAvatar: user.profilePictureUrl || user.photoURL || '',
 
         // Activity Gate
         activityTitle: activity.title,

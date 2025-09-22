@@ -32,6 +32,7 @@ type ActivityContextType = {
   activeActivity: Activity | null;
   startActivity: (activityId: string, userId?: string) => Promise<void>;
   endActivity: () => Promise<void>;
+  leaveActivity: (userId?: string) => Promise<void>;
 };
 
 const ActivityContext = createContext<ActivityContextType | undefined>(undefined);
@@ -102,7 +103,43 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
     if (typeof window !== 'undefined') sessionStorage.removeItem('activeActivityId');
   };
 
-  const value = useMemo(() => ({ activeActivity, startActivity, endActivity }), [activeActivity]);
+  const leaveActivity = async (userId?: string) => {
+    if (!activeActivity || !userId) {
+      throw new Error('No active activity or user ID provided');
+    }
+
+    try {
+      // Call the RSVP API to leave the activity
+      const response = await fetch('/api/rsvp-activity', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({
+          activityId: activeActivity.id,
+          groupId: activeActivity.groupId,
+          userId: userId,
+          action: 'leave'
+        })
+      });
+
+      if (!response.ok) {
+        const errorData = await response.json();
+        throw new Error(errorData.error || 'Failed to leave activity');
+      }
+
+      // Clear the active activity from context and session
+      setActiveActivity(null);
+      if (typeof window !== 'undefined') sessionStorage.removeItem('activeActivityId');
+
+      console.log('Successfully left activity:', activeActivity.title);
+    } catch (error) {
+      console.error('Error leaving activity:', error);
+      throw error;
+    }
+  };
+
+  const value = useMemo(() => ({ activeActivity, startActivity, endActivity, leaveActivity }), [activeActivity]);
   return <ActivityContext.Provider value={value}>{children}</ActivityContext.Provider>;
 }
 
