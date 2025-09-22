@@ -9,10 +9,10 @@ import { db } from '@/app/Lib/firebase';
 import { collection, onSnapshot, orderBy, query, where, limit } from 'firebase/firestore';
 
 export default function LatestPosts({ group }) {
-  if (!group) return null;
   const [posts, setPosts] = useState([]);
   useEffect(() => {
     const refCol = collection(db, 'posts');
+    if (!group?.id) return;
     const q = query(refCol, where('groupId', '==', group.id), orderBy('timestamp', 'desc'), limit(10));
     const unsub = onSnapshot(
       q,
@@ -36,7 +36,9 @@ export default function LatestPosts({ group }) {
       }
     );
     return () => unsub();
-  }, [group.id]);
+  }, [group?.id]);
+
+  if (!group) return null;
 
   return (
     <motion.div

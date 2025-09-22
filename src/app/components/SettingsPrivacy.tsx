@@ -8,6 +8,7 @@ import { doc, getDoc, setDoc } from 'firebase/firestore';
 type DMPreference = 'everyone' | 'followers' | 'noone';
 type MentionPreference = 'everyone' | 'followers';
 type ConnectionsVisibility = 'everyone' | 'followers' | 'only_me';
+type ProfileVisibility = 'public' | 'followers' | 'private';
 
 export default function SettingsPrivacy() {
   const { user } = useAuth();

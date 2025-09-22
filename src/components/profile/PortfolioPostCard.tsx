@@ -37,7 +37,7 @@ export default function PortfolioPostCard({ post, className }: PortfolioPostCard
       )}
 
       {/* PostCard expects a plain object; we forward essential props */}
-      <PostCard post={post} />
+      <PostCard post={post as any} onLike={() => {}} onComment={() => {}} />
 
       {/* Visibility chip bottom-left */}
       {visibility && (

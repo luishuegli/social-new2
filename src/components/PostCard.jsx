@@ -1,23 +1,17 @@
 // src/components/PostCard.jsx
 'use client';
 
-import React, { useState } from 'react';
-import Image from 'next/image';
+import React, { useState, useEffect } from 'react';
+import NextImage from 'next/image';
 import { Heart, MessageCircle } from 'lucide-react';
+import { usePosts } from '../app/hooks/usePosts';
+import CommentModal from './ui/CommentModal';
+import { getOptimalAspectRatio, getAspectRatioClasses } from '../app/utils/imageUtils';
 
-// This is a placeholder type. Ensure it matches your actual Post type from src/app/types.ts
-// interface Post {
-//   id: string;
-//   imageUrl?: string;
-//   userAvatar: string;
-//   userName: string;
-//   timestamp: string;
-//   content: string;
-//   likes: number;
-//   comments: number;
-// }
-
-export default function PostCard({ post /*: Post*/ }) {
+export default function PostCard({ post /*: Post*/, onLike, onComment }) {
+  const { handleLike: hookHandleLike, handleComment: hookHandleComment } = usePosts();
+  const [showComments, setShowComments] = useState(false);
+  
   if (!post) {
     return null;
   }
@@ -39,7 +33,7 @@ export default function PostCard({ post /*: Post*/ }) {
           <div className="flex items-center">
           {post.userAvatar && (
             <a href={post.username ? `/u/${post.username}` : '#'}>
-              <Image
+              <NextImage
                 src={post.userAvatar}
                 alt={post.userName || 'User avatar'}
                 width={40}
@@ -70,25 +64,92 @@ export default function PostCard({ post /*: Post*/ }) {
 
         {/* Action Bar */}
         <div className="flex items-center space-x-4 text-neutral-400 border-t border-white/10 pt-3 mt-auto">
-          <div className="flex items-center space-x-1">
-            <Heart size={18} />
-            <span>{post.likes}</span>
-          </div>
-          <div className="flex items-center space-x-1">
-            <MessageCircle size={18} />
-            <span>{post.comments}</span>
-            </div>
+        <button
+          onClick={() => {
+            if (onLike) {
+              onLike(); // Use parent handler if provided (for backward compatibility)
+            } else {
+              hookHandleLike(post.id, !post.isLiked); // Use hook handler as default
+            }
+          }}
+          className={`flex items-center space-x-1 hover:text-white transition-colors ${
+            post.isLiked ? 'text-red-500' : 'text-neutral-400'
+          }`}
+          type="button"
+        >
+          <Heart size={18} fill={post.isLiked ? 'currentColor' : 'none'} />
+          <span>{post.likes}</span>
+        </button>
+        <button
+          onClick={() => {
+            if (onComment) {
+              onComment(); // Use parent handler if provided
+            } else {
+              setShowComments(true); // Open comment modal
+            }
+          }}
+          className="flex items-center space-x-1 hover:text-white transition-colors"
+          type="button"
+        >
+          <MessageCircle size={18} />
+          <span>{post.comments}</span>
+        </button>
         </div>
       </div>
+      
+      {/* Comment Modal */}
+      <CommentModal
+        isOpen={showComments}
+        onClose={() => setShowComments(false)}
+        post={post}
+        onLike={() => {
+          if (onLike) {
+            onLike();
+          } else {
+            hookHandleLike(post.id, !post.isLiked);
+          }
+        }}
+      />
     </div>
   );
 }
 
 function ImageContainer({ src, alt, fallbackSeed }) {
   const [error, setError] = useState(false);
+  const [aspectRatio, setAspectRatio] = useState('aspect-[4/3]');
   const resolvedSrc = error ? `https://picsum.photos/seed/${fallbackSeed}/800/600` : src;
+
+  useEffect(() => {
+    // Only analyze aspect ratio if we have a valid image source
+    if (!resolvedSrc) {
+      setAspectRatio('aspect-[4/3]');
+      return;
+    }
+
+    // Analyze the image to determine optimal aspect ratio
+    const img = new window.Image();
+    img.onload = () => {
+      try {
+        // Check if we have valid dimensions
+        if (img.naturalWidth && img.naturalHeight) {
+          const ratio = getOptimalAspectRatio(img.naturalWidth, img.naturalHeight);
+          setAspectRatio(getAspectRatioClasses(ratio));
+        } else {
+          setAspectRatio('aspect-[4/3]'); // Fallback for invalid dimensions
+        }
+      } catch (error) {
+        console.warn('Error analyzing image aspect ratio:', error);
+        setAspectRatio('aspect-[4/3]'); // Fallback on error
+      }
+    };
+    img.onerror = () => {
+      setAspectRatio('aspect-[4/3]'); // Fallback on load error
+    };
+    img.src = resolvedSrc;
+  }, [resolvedSrc]);
+
   return (
-    <div className="relative w-full aspect-[4/3] overflow-hidden">
+    <div className={`relative w-full ${aspectRatio} overflow-hidden`}>
       {/* eslint-disable-next-line @next/next/no-img-element */}
       <img
         src={resolvedSrc}

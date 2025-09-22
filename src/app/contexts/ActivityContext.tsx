@@ -9,14 +9,28 @@ type Activity = {
   title: string;
   groupId: string;
   participants: string[];
-  startTime?: any;
-  endTime?: any;
+  startTime?: Date;
+  endTime?: Date;
   status: 'planned' | 'active' | 'completed';
 };
 
+type FirestoreTimestampLike = { toDate?: () => Date } | Date | string | number | null | undefined;
+
+function toDateSafe(value: FirestoreTimestampLike): Date | undefined {
+  try {
+    if (!value) return undefined;
+    if (value instanceof Date) return value;
+    if (typeof value === 'string' || typeof value === 'number') return new Date(value);
+    if (typeof value === 'object' && typeof value.toDate === 'function') return value.toDate();
+    return undefined;
+  } catch {
+    return undefined;
+  }
+}
+
 type ActivityContextType = {
   activeActivity: Activity | null;
-  startActivity: (activityId: string) => Promise<void>;
+  startActivity: (activityId: string, userId?: string) => Promise<void>;
   endActivity: () => Promise<void>;
 };
 
@@ -34,8 +48,16 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
         const ref = doc(db, 'activities', savedId);
         const snap = await getDoc(ref);
         if (snap.exists()) {
-          const data = snap.data() as any;
-          setActiveActivity({ id: snap.id, ...data } as Activity);
+          const raw = snap.data() as Record<string, unknown>;
+          setActiveActivity({
+            id: snap.id,
+            title: String(raw.title || ''),
+            groupId: String(raw.groupId || ''),
+            participants: Array.isArray(raw.participants) ? (raw.participants as string[]) : [],
+            startTime: toDateSafe(raw.startTime as FirestoreTimestampLike),
+            endTime: toDateSafe(raw.endTime as FirestoreTimestampLike),
+            status: (raw.status as Activity['status']) || 'planned',
+          });
         } else {
           sessionStorage.removeItem('activeActivityId');
         }
@@ -43,15 +65,32 @@ export function ActivityProvider({ children }: { children: React.ReactNode }) {
     }
   }, []);
 
-  const startActivity = async (activityId: string) => {
-    const ref = doc(db, 'activities', activityId);
-    const snap = await getDoc(ref);
-    if (!snap.exists()) throw new Error('Activity not found');
-    const data = snap.data() as any;
-    const activity = { id: snap.id, ...data } as Activity;
-    await updateDoc(ref, { status: 'active', startTime: data.startTime || serverTimestamp() });
-    setActiveActivity({ ...activity, status: 'active' });
-    if (typeof window !== 'undefined') sessionStorage.setItem('activeActivityId', activityId);
+  const startActivity = async (activityId: string, userId?: string) => {
+    try {
+      if (!userId) {
+        throw new Error('User ID is required to start an activity');
+      }
+      // Use server route to bypass client rules
+      const resp = await fetch('/api/activities/start', { method: 'POST', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ activityId, uid: userId }) });
+      if (!resp.ok) throw new Error('Failed to start activity');
+      const ref = doc(db, 'activities', activityId);
+      const snap = await getDoc(ref);
+      if (!snap.exists()) throw new Error('Activity not found');
+      const raw = snap.data() as Record<string, unknown>;
+      const activity: Activity = {
+        id: snap.id,
+        title: String(raw.title || ''),
+        groupId: String(raw.groupId || ''),
+        participants: Array.isArray(raw.participants) ? (raw.participants as string[]) : [],
+        startTime: toDateSafe(raw.startTime as FirestoreTimestampLike),
+        endTime: toDateSafe(raw.endTime as FirestoreTimestampLike),
+        status: (raw.status as Activity['status']) || 'active',
+      };
+      setActiveActivity(activity);
+      if (typeof window !== 'undefined') sessionStorage.setItem('activeActivityId', activityId);
+    } catch (e) {
+      throw e;
+    }
   };
 
   const endActivity = async () => {

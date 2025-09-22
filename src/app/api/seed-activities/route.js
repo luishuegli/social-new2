@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adminDb } from '../../Lib/firebaseAdmin';
+import { generateRealisticActivity } from '../../../lib/activityGenerator.js';
 
 export async function POST() {
   try {
@@ -19,24 +20,54 @@ export async function POST() {
         const existingActivity = await adminDb.collection('activities').doc(activityId).get();
         
         if (!existingActivity.exists) {
+          console.log(`Creating activity ${activityId} for group ${groupId}`);
+        } else {
+          console.log(`Activity ${activityId} already exists, skipping`);
+          continue;
+        }
+        
+        if (!existingActivity.exists) {
+          // Generate realistic activity based on group name and category
+          const realisticActivity = generateRealisticActivity(
+            groupData.groupName || groupData.name || 'Social Group',
+            groupData.category,
+            {
+              difficulty: 'Easy', // Default to easy for broad appeal
+              maxDuration: 4 // Max 4 hours for most activities
+            }
+          );
+
           const activityData = {
             id: activityId,
-            title: groupData.nextActivity.title || 'Group Activity',
-            description: groupData.nextActivity.description || `Upcoming activity for ${groupData.name || 'Unknown Group'}`,
+            title: realisticActivity.title,
+            description: realisticActivity.description,
             groupId: groupId,
-            groupName: groupData.name || 'Unknown Group',
-            date: groupData.nextActivity.date || null,
-            location: groupData.nextActivity.location || '',
+            groupName: groupData.groupName || groupData.name || 'Unknown Group',
+            date: realisticActivity.date,
+            location: realisticActivity.location,
+            duration: realisticActivity.duration,
+            difficulty: realisticActivity.difficulty,
+            category: realisticActivity.category,
+            emoji: realisticActivity.emoji,
+            estimatedCost: realisticActivity.estimatedCost,
+            maxParticipants: realisticActivity.maxParticipants,
+            tags: realisticActivity.tags,
             participants: [], // Start with empty participants
             status: 'planned',
             creatorId: groupData.createdBy || 'system',
             createdAt: new Date(),
             updatedAt: new Date(),
-            type: 'group_activity'
+            type: realisticActivity.type
           };
 
           await adminDb.collection('activities').doc(activityId).set(activityData);
-          activities.push({ activityId, groupId, title: activityData.title });
+          activities.push({ 
+            activityId, 
+            groupId, 
+            title: activityData.title,
+            category: activityData.category,
+            emoji: activityData.emoji
+          });
         }
       }
     }

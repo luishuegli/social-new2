@@ -7,17 +7,19 @@ import { Heart, MessageCircle, Share, MoreHorizontal } from 'lucide-react';
 import LiquidGlass from '../ui/LiquidGlass';
 import PostImageModal from '../ui/PostImageModal';
 import { db } from '@/app/Lib/firebase';
-import { collection, onSnapshot, orderBy, query, where } from 'firebase/firestore';
+import { collection, onSnapshot, orderBy, query, where, doc, getDoc } from 'firebase/firestore';
+import { useAuth } from '@/app/contexts/AuthContext';
 
 export default function GroupPosts({ group }) {
-  if (!group) return null;
-
+  const { user } = useAuth();
   const [posts, setPosts] = useState([]);
   const [activeIndex, setActiveIndex] = useState(-1);
+  const [loadingLikes, setLoadingLikes] = useState(new Set());
   useEffect(() => {
     const postsRef = collection(db, 'posts');
+    if (!group?.id) return;
     const q = query(postsRef, where('groupId', '==', group.id), orderBy('timestamp', 'desc'));
-    const unsub = onSnapshot(q, (snap) => {
+    const unsub = onSnapshot(q, async (snap) => {
       const items = [];
       snap.forEach((d) => {
         const data = d.data();
@@ -30,27 +32,122 @@ export default function GroupPosts({ group }) {
           timestamp: data.timestamp?.toDate?.()?.toISOString?.() || new Date().toISOString(),
           likes: data.likes || 0,
           comments: data.comments || 0,
+          isLiked: false, // Will be updated below
         });
       });
-      setPosts(items);
+
+      // Check like status for authenticated users
+      if (user?.uid && items.length > 0) {
+        const postsWithLikeStatus = await Promise.all(
+          items.map(async (post) => {
+            try {
+              const likeDoc = await getDoc(doc(db, 'posts', post.id, 'likes', user.uid));
+              return { ...post, isLiked: likeDoc.exists() };
+            } catch {
+              return post;
+            }
+          })
+        );
+        setPosts(postsWithLikeStatus);
+      } else {
+        setPosts(items);
+      }
     });
     return () => unsub();
-  }, [group.id]);
+  }, [group?.id, user?.uid]);
 
-  const handleLike = (postId) => {
-    // Like functionality - placeholder for future implementation
-    console.log('Liked post:', postId);
+  const handleLike = async (postId) => {
+    if (!user) {
+      alert('Please sign in to like posts');
+      return;
+    }
+
+    if (loadingLikes.has(postId)) return; // Prevent double clicks
+
+    const post = posts.find(p => p.id === postId);
+    if (!post) return;
+
+    const newIsLiked = !post.isLiked;
+    
+    // Optimistic update
+    setPosts(prev => prev.map(p => 
+      p.id === postId 
+        ? { ...p, isLiked: newIsLiked, likes: newIsLiked ? p.likes + 1 : Math.max(0, p.likes - 1) }
+        : p
+    ));
+
+    setLoadingLikes(prev => new Set([...prev, postId]));
+
+    try {
+      const token = await user.getIdToken();
+      const response = await fetch('/api/like-post', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ postId, isLiked: newIsLiked })
+      });
+
+      const result = await response.json();
+      
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to like post');
+      }
+
+      // Update with server response
+      setPosts(prev => prev.map(p => 
+        p.id === postId 
+          ? { ...p, isLiked: result.isLiked, likes: result.newLikeCount }
+          : p
+      ));
+
+    } catch (error) {
+      console.error('Error liking post:', error);
+      // Revert optimistic update
+      setPosts(prev => prev.map(p => 
+        p.id === postId 
+          ? { ...p, isLiked: post.isLiked, likes: post.likes }
+          : p
+      ));
+      alert('Failed to like post. Please try again.');
+    } finally {
+      setLoadingLikes(prev => {
+        const newSet = new Set(prev);
+        newSet.delete(postId);
+        return newSet;
+      });
+    }
   };
 
   const handleComment = (postId) => {
-    // Comment functionality - placeholder for future implementation
-    console.log('Comment on post:', postId);
+    // For now, just log - this could open a comment modal in the future
+    console.log('Opening comments for post:', postId);
+    // TODO: Implement comment modal or navigate to post detail page
   };
 
-  const handleShare = (postId) => {
-    // Share functionality - placeholder for future implementation
-    console.log('Share post:', postId);
+  const handleShare = async (postId) => {
+    try {
+      const post = posts.find(p => p.id === postId);
+      if (!post) return;
+
+      if (navigator.share) {
+        await navigator.share({
+          title: post.title,
+          text: post.content,
+          url: window.location.href
+        });
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(window.location.href);
+        alert('Link copied to clipboard!');
+      }
+    } catch (error) {
+      console.error('Error sharing post:', error);
+    }
   };
+
+  if (!group) return null;
 
   return (
     <>
@@ -143,9 +240,17 @@ export default function GroupPosts({ group }) {
                     <div className="flex items-center space-x-4">
                       <button
                         onClick={() => handleLike(post.id)}
-                        className="flex items-center space-x-1 text-white/50 hover:text-white transition-colors duration-200"
+                        disabled={loadingLikes.has(post.id)}
+                        className={`flex items-center space-x-1 transition-colors duration-200 ${
+                          post.isLiked 
+                            ? 'text-red-400 hover:text-red-300' 
+                            : 'text-white/50 hover:text-white'
+                        } ${loadingLikes.has(post.id) ? 'opacity-50 cursor-not-allowed' : ''}`}
                       >
-                        <Heart className="w-4 h-4" />
+                        <Heart 
+                          className="w-4 h-4" 
+                          fill={post.isLiked ? 'currentColor' : 'none'}
+                        />
                         <span className="text-xs">{post.likes}</span>
                       </button>
                       <button

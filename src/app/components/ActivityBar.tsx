@@ -13,7 +13,7 @@ export default function ActivityBar() {
         onClick={endActivity}
         className="px-3 py-2 text-sm font-semibold rounded-card bg-red-500 text-white hover:bg-red-600"
       >
-        End Activity
+        Leave Activity
       </button>
     </div>
   );
