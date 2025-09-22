@@ -55,13 +55,44 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           const userDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
           const userData = userDoc.data();
           
-          // Create extended user object with Firestore data
-          const extendedUser = {
-            ...firebaseUser,
-            profilePictureUrl: userData?.profilePictureUrl
-          } as ExtendedUser;
-          
-          setUser(extendedUser);
+          // If user doesn't have profile data, ensure they do
+          if (!userData) {
+            try {
+              const token = await firebaseUser.getIdToken();
+              const response = await fetch('/api/ensure-user-profile', {
+                method: 'POST',
+                headers: {
+                  'Authorization': `Bearer ${token}`
+                }
+              });
+              
+              if (response.ok) {
+                // Re-fetch the user data after ensuring profile exists
+                const updatedUserDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
+                const updatedUserData = updatedUserDoc.data();
+                
+                const extendedUser = {
+                  ...firebaseUser,
+                  profilePictureUrl: updatedUserData?.profilePictureUrl
+                } as ExtendedUser;
+                
+                setUser(extendedUser);
+              } else {
+                setUser(firebaseUser as ExtendedUser);
+              }
+            } catch (profileError) {
+              console.error('Error ensuring user profile:', profileError);
+              setUser(firebaseUser as ExtendedUser);
+            }
+          } else {
+            // Create extended user object with Firestore data
+            const extendedUser = {
+              ...firebaseUser,
+              profilePictureUrl: userData?.profilePictureUrl
+            } as ExtendedUser;
+            
+            setUser(extendedUser);
+          }
         } catch (error) {
           console.error('Error fetching user profile:', error);
           setUser(firebaseUser as ExtendedUser);
