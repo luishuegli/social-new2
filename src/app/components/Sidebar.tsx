@@ -167,7 +167,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     { icon: MessageCircle, label: 'Action Center', href: '/action-center', badge: unread.totalUnread || undefined },
     { icon: Users, label: 'Groups', href: '/groups', badge: unread.groupsWithUnread || undefined },
     { icon: Calendar, label: 'Calendar', href: '/calendar' },
-    { icon: Calendar, label: 'Activity Mode', href: '/activity-mode' },
+    { icon: Calendar, label: 'Live Activities', href: '/activity-mode' },
   ];
 
   return (
@@ -245,9 +245,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* Quick Actions */}
           <div className="mt-6 sm:mt-8 flex-shrink-0">
             <Link href={activeActivity ? '/posts/live/create' : '/posts/create'} className="block">
-              <div className={`w-full flex items-center justify-center space-x-3 liquid-glass text-content-primary px-4 sm:px-6 py-3 sm:py-4 font-semibold rounded-lg transition-all duration-200 hover:bg-opacity-80 ${activeActivity ? 'ring-2 ring-green-400/60' : ''}`}>
-                <Plus className="w-5 h-5 flex-shrink-0" strokeWidth={2} />
-                <span className="text-body truncate">New Post</span>
+              <div className={`w-full flex items-center justify-center space-x-3 liquid-glass text-content-primary px-4 sm:px-6 py-3 sm:py-4 font-semibold rounded-lg transition-all duration-200 hover:bg-opacity-80 ${activeActivity ? 'ring-2 ring-green-400/60 animate-pulse' : ''}`}>
+                {activeActivity ? (
+                  <>
+                    <div className="w-2 h-2 bg-red-500 rounded-full animate-pulse flex-shrink-0"></div>
+                    <span className="text-body truncate">Live Post</span>
+                  </>
+                ) : (
+                  <>
+                    <Plus className="w-5 h-5 flex-shrink-0" strokeWidth={2} />
+                    <span className="text-body truncate">New Post</span>
+                  </>
+                )}
               </div>
             </Link>
           </div>

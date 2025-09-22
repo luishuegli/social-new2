@@ -1,10 +1,12 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { collection, query, where, orderBy, onSnapshot, doc, updateDoc, getDocs, limit } from 'firebase/firestore';
 import { db } from '../Lib/firebase';
 import { useAuth } from '../contexts/AuthContext';
 import { Group, LatestActivity } from '../types';
+
+const isDevelopment = process.env.NODE_ENV === 'development';
 
 export function useGroups() {
   const [groups, setGroups] = useState<Group[]>([]);
@@ -12,6 +14,7 @@ export function useGroups() {
   const [standardGroups, setStandardGroups] = useState<Group[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const { user } = useAuth();
 
 
@@ -271,10 +274,15 @@ export function useGroups() {
       return unsubscribe;
     } catch (error) {
       console.error('Error setting up groups listener:', error);
-      setError('Failed to load groups');
+      setError('Failed to load groups. Please check your connection and try again.');
       setLoading(false);
     }
-  }, [user]);
+  }, [user, retryCount]);
+
+  const retry = useCallback(() => {
+    setRetryCount(prev => prev + 1);
+    setError(null);
+  }, []);
 
   const handleJoinActivity = async (groupId: string, activityId: string) => {
     try {
@@ -404,6 +412,7 @@ export function useGroups() {
     standardGroups, 
     loading, 
     error,
+    retry,
     handlePinToggle,
     handleJoinActivity
   };

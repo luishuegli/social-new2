@@ -2,7 +2,7 @@
 
 import { useState, useEffect, useCallback } from 'react';
 import { db } from '../Lib/firebase';
-import { collection, query, orderBy, onSnapshot } from 'firebase/firestore';
+import { collection, query, orderBy, onSnapshot, doc, getDoc } from 'firebase/firestore';
 import { Post } from '../types';
 import { useAuth } from '../contexts/AuthContext';
 
@@ -10,7 +10,32 @@ export function usePosts() {
   const [posts, setPosts] = useState<Post[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [retryCount, setRetryCount] = useState(0);
   const { user } = useAuth();
+
+  // Helper function to check if user liked a post
+  const checkLikeStatus = useCallback(async (postId: string): Promise<boolean> => {
+    if (!user?.uid) return false;
+    try {
+      const likeDoc = await getDoc(doc(db, 'posts', postId, 'likes', user.uid));
+      return likeDoc.exists();
+    } catch {
+      return false;
+    }
+  }, [user?.uid]);
+
+  // Helper function to enrich posts with like status
+  const enrichPostsWithLikeStatus = useCallback(async (posts: Post[]): Promise<Post[]> => {
+    if (!user?.uid) return posts;
+    
+    const enrichedPosts = await Promise.all(
+      posts.map(async (post) => {
+        const isLiked = await checkLikeStatus(post.id);
+        return { ...post, isLiked };
+      })
+    );
+    return enrichedPosts;
+  }, [user?.uid, checkLikeStatus]);
 
   useEffect(() => {
     // Fetch posts for all users (authenticated and non-authenticated)
@@ -64,9 +89,12 @@ export function usePosts() {
             });
           });
           if (items.length > 0) {
-            setPosts(items);
-            setError(null);
-            setLoading(false);
+            // Enrich posts with like status for authenticated users
+            enrichPostsWithLikeStatus(items).then((enrichedPosts) => {
+              setPosts(enrichedPosts);
+              setError(null);
+              setLoading(false);
+            });
           } else if (!didHydrateFromApi) {
             // Fallback: hydrate from server (admin) API
             fetch('/api/posts?limit=20')
@@ -89,9 +117,12 @@ export function usePosts() {
                   participants: data.participants,
                 }));
                 didHydrateFromApi = true;
-                setPosts(mapped);
-                setError(null);
-                setLoading(false);
+                // Enrich API posts with like status too
+                enrichPostsWithLikeStatus(mapped).then((enrichedPosts) => {
+                  setPosts(enrichedPosts);
+                  setError(null);
+                  setLoading(false);
+                });
               })
               .catch(() => {
                 setPosts([]);
@@ -111,49 +142,91 @@ export function usePosts() {
       setError('Failed to load posts');
       setLoading(false);
     }
-  }, [user]);
+  }, [user, retryCount]);
+
+  const retry = useCallback(() => {
+    setRetryCount(prev => prev + 1);
+    setError(null);
+  }, []);
 
   const handleLike = useCallback(async (postId: string, isLiked: boolean) => {
+    if (!user) {
+      setError('Please sign in to like posts');
+      return;
+    }
+
+    // Optimistic update
+    const originalPost = posts.find(p => p.id === postId);
+    setPosts(prev => prev.map(post => {
+      if (post.id === postId) {
+        return {
+          ...post,
+          isLiked,
+          likes: isLiked ? post.likes + 1 : Math.max(0, post.likes - 1)
+        };
+      }
+      return post;
+    }));
+
     try {
-      console.log('Liking post:', postId, isLiked);
+      const token = await user.getIdToken();
+      const response = await fetch('/api/like-post', {
+        method: 'POST',
+        headers: {
+          'Authorization': `Bearer ${token}`,
+          'Content-Type': 'application/json'
+        },
+        body: JSON.stringify({ postId, isLiked })
+      });
+
+      const result = await response.json();
       
-      // Simulate API call
-      await new Promise(resolve => setTimeout(resolve, 200));
-      
-      // Update the post in local state
+      if (!response.ok) {
+        throw new Error(result.error || 'Failed to like post');
+      }
+
+      // Update with actual like count from server
       setPosts(prev => prev.map(post => {
         if (post.id === postId) {
           return {
             ...post,
-            isLiked,
-            likes: isLiked ? post.likes + 1 : post.likes - 1
+            isLiked: result.isLiked,
+            likes: result.newLikeCount
           };
         }
         return post;
       }));
-      
-      // In a real app, you would make an API call here
-      // await api.likePost(postId, isLiked);
+
     } catch (err) {
       console.error('Error liking post:', err);
-      throw err; // Re-throw so component can handle revert
+      // Revert optimistic update on error
+      if (originalPost) {
+        setPosts(prev => prev.map(post => {
+          if (post.id === postId) {
+            return originalPost;
+          }
+          return post;
+        }));
+      }
+      setError('Failed to like post. Please try again.');
     }
-  }, []);
+  }, [user, posts]);
 
-  const handleComment = useCallback(async (postId: string) => {
-    try {
+  const handleComment = useCallback((postId: string, onOpenComments?: (post: Post) => void) => {
+    const post = posts.find(p => p.id === postId);
+    if (post && onOpenComments) {
+      onOpenComments(post);
+    } else {
       console.log('Opening comments for post:', postId);
-      // In a real app, this might open a comments modal or navigate to post detail
-      // For now, just log the action
-    } catch (err) {
-      console.error('Error opening comments:', err);
+      // Fallback: could navigate to post detail page
     }
-  }, []);
+  }, [posts]);
 
   return {
     posts,
     loading,
     error,
+    retry,
     handleLike,
     handleComment
   };

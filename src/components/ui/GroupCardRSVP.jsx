@@ -5,17 +5,18 @@ import { motion } from 'framer-motion';
 import { Calendar, Users, Check, Plus } from 'lucide-react';
 import Image from 'next/image';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { useRSVP } from '@/app/hooks/useRSVP';
 
 export default function GroupCardRSVP({ group }) {
   const { user } = useAuth?.() || { user: null };
-  const [isJoining, setIsJoining] = useState(false);
+  const { handleRSVP, isLoading, error: rsvpError, clearError } = useRSVP();
   const [error, setError] = useState(null);
 
   // Check if user has already joined the activity
   const hasJoined = group?.nextActivity?.participants?.includes(user?.uid) || 
                    group?.nextActivity?.joined || false;
 
-  const handleRSVP = async (e) => {
+  const handleRSVPClick = async (e) => {
     e.preventDefault();
     e.stopPropagation();
     
@@ -29,50 +30,20 @@ export default function GroupCardRSVP({ group }) {
       return;
     }
 
-    setIsJoining(true);
     setError(null);
+    clearError();
 
-    try {
-      // Call the RSVP API endpoint
-      const response = await fetch('/api/rsvp-activity', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json',
-        },
-        body: JSON.stringify({
-          activityId: group.nextActivity.id,
-          groupId: group.id,
-          userId: user.uid,
-          action: hasJoined ? 'leave' : 'join'
-        }),
-      });
+    const result = await handleRSVP({
+      activityId: group.nextActivity.id,
+      groupId: group.id,
+      action: hasJoined ? 'leave' : 'join'
+    });
 
-      const result = await response.json();
-
-      if (!response.ok) {
-        throw new Error(result.error || 'Failed to update RSVP');
-      }
-
-      // The parent component should handle the state update
-      // For now, we'll show a success message
+    if (result) {
+      // Success - the parent component will handle state updates via real-time listeners
       console.log('RSVP updated successfully:', result);
-      
-    } catch (error) {
-      console.error('RSVP error:', error);
-      
-      // User-friendly error messages
-      let errorMessage = 'Failed to update RSVP';
-      if (error.message?.includes('permission')) {
-        errorMessage = 'You don\'t have permission to RSVP';
-      } else if (error.message?.includes('network') || error.message?.includes('fetch')) {
-        errorMessage = 'Network error. Please try again';
-      } else if (error.message?.includes('not found')) {
-        errorMessage = 'Activity not found';
-      }
-      
-      setError(errorMessage);
-    } finally {
-      setIsJoining(false);
+    } else if (rsvpError) {
+      setError(rsvpError);
     }
   };
 
@@ -108,22 +79,22 @@ export default function GroupCardRSVP({ group }) {
 
       {/* RSVP Button */}
       <motion.button
-        onClick={handleRSVP}
-        disabled={isJoining || !user}
-        whileHover={!isJoining ? { scale: 1.02 } : {}}
-        whileTap={!isJoining ? { scale: 0.98 } : {}}
+        onClick={handleRSVPClick}
+        disabled={isLoading(group?.nextActivity?.id || '') || !user}
+        whileHover={!isLoading(group?.nextActivity?.id || '') ? { scale: 1.02 } : {}}
+        whileTap={!isLoading(group?.nextActivity?.id || '') ? { scale: 0.98 } : {}}
         className={`
           w-full px-3 py-2 rounded-lg text-sm font-semibold transition-all duration-200
           ${hasJoined 
                              ? 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm' 
             : 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm'
           }
-          ${isJoining ? 'opacity-50 cursor-not-allowed' : ''}
+          ${isLoading(group?.nextActivity?.id || '') ? 'opacity-50 cursor-not-allowed' : ''}
           ${!user ? 'opacity-50 cursor-not-allowed' : ''}
         `}
       >
         <div className="flex items-center justify-center space-x-2">
-          {isJoining ? (
+          {isLoading(group?.nextActivity?.id || '') ? (
             <>
               <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
               <span>Updating...</span>
@@ -143,9 +114,9 @@ export default function GroupCardRSVP({ group }) {
       </motion.button>
 
       {/* Error message */}
-      {error && (
+      {(error || rsvpError) && (
         <p className="text-xs text-red-400 text-center">
-          {error}
+          {error || rsvpError}
         </p>
       )}
 

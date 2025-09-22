@@ -10,24 +10,14 @@ export default function ChatPollCard({ poll, onVote }) {
   const [isVoting, setIsVoting] = useState(false);
   const { user } = useAuth();
 
-  console.log('🔍 ChatPollCard received poll:', poll);
-  console.log('🔍 Current user:', user);
-  console.log('🔍 User ID:', user?.uid);
-  console.log('🔍 User email:', user?.email);
+  // Removed debug logs for production
 
   const handleOptionSelect = (optionId) => {
-    console.log('🎯 Option selected:', optionId);
     setSelectedOption(optionId);
   };
 
   const handleVote = async () => {
-    console.log('🗳️ Starting vote process...');
-    console.log('🗳️ Selected option:', selectedOption);
-    console.log('🗳️ User:', user);
-    console.log('🗳️ User ID:', user?.uid);
-    
     if (!selectedOption || !user) {
-      console.log('❌ Cannot vote:', { selectedOption, user });
       if (!selectedOption) {
         alert('Please select an option to vote for.');
       } else if (!user) {
@@ -36,20 +26,16 @@ export default function ChatPollCard({ poll, onVote }) {
       return;
     }
     
-    // Check if poll has an ID
     if (!poll.id) {
-      console.error('❌ Poll has no ID:', poll);
       alert('Cannot vote: Poll ID is missing');
       return;
     }
     
     setIsVoting(true);
     try {
-      console.log('🗳️ Attempting to vote:', { pollId: poll.id, optionId: selectedOption, userId: user.uid });
       await onVote(poll.id, selectedOption, user.uid);
-      console.log('✅ Vote submitted successfully');
     } catch (error) {
-      console.error('❌ Error voting:', error);
+      console.error('Error voting:', error);
       alert(`Failed to vote: ${error.message || 'Please try again.'}`);
     } finally {
       setIsVoting(false);

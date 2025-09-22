@@ -41,6 +41,25 @@ export default function UserProfilePage() {
   const { profile, counts } = useUserProfile(userId);
   const { groups } = useUserGroups(userId);
   const { posts } = useUserPosts(userId);
+  
+  // All hooks must be called before any conditional returns
+  const [activeTab, setActiveTab] = React.useState<'portfolio' | 'groups'>('portfolio');
+  const [filter, setFilter] = React.useState<'All' | 'Live' | 'Collaborative'>('All');
+
+  // Add loading state
+  if (!profile) {
+    return (
+      <AppLayout>
+        <div className="w-full max-w-4xl mx-auto p-6">
+          <div className="animate-pulse">
+            <div className="h-8 bg-gray-300 rounded w-1/4 mb-4"></div>
+            <div className="h-4 bg-gray-300 rounded w-1/2 mb-2"></div>
+            <div className="h-4 bg-gray-300 rounded w-1/3"></div>
+          </div>
+        </div>
+      </AppLayout>
+    );
+  }
   const user = {
     id: userId,
     name: profile?.username || profile?.displayName || 'User',
@@ -82,9 +101,6 @@ export default function UserProfilePage() {
         return null;
     }
   };
-
-  const [activeTab, setActiveTab] = React.useState<'portfolio' | 'groups'>('portfolio');
-  const [filter, setFilter] = React.useState<'All' | 'Live' | 'Collaborative'>('All');
 
   return (
     <AppLayout>

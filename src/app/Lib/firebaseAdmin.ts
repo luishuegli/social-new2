@@ -1,6 +1,8 @@
 // Server-side Firebase Admin initialization for Firestore writes that bypass security rules
 import { getApps, initializeApp, applicationDefault, cert, type App } from 'firebase-admin/app';
 import { getFirestore, FieldValue } from 'firebase-admin/firestore';
+import { getAuth } from 'firebase-admin/auth';
+import { getStorage } from 'firebase-admin/storage';
 
 function buildAdminApp(): App {
   // Server should only use emulators if explicitly requested via FIRESTORE_EMULATOR_HOST or SERVER flag
@@ -37,5 +39,7 @@ const adminApp: App = getApps().length === 0 ? buildAdminApp() : getApps()[0]!;
 
 // Export Firestore instance and FieldValue for server timestamps, etc.
 export const adminDb = getFirestore(adminApp);
+export const adminAuth = getAuth(adminApp);
+export const adminStorage = getStorage(adminApp);
 export { FieldValue } from 'firebase-admin/firestore';
 

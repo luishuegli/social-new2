@@ -94,7 +94,7 @@ export default function UserProfilePage() {
               </div>
               <div className="md:col-span-8">
                 <div className="grid grid-cols-1 gap-4">
-                  {posts.map(p => <PostCard key={p.id} post={p} />)}
+                  {posts.map(p => <PostCard key={p.id} post={p as any} onLike={() => {}} onComment={() => {}} />)}
                   {posts.length === 0 && (
                     <LiquidGlass className="p-6 text-center text-content-secondary">No posts yet.</LiquidGlass>
                   )}

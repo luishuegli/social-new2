@@ -44,7 +44,7 @@ const shouldForceLongPolling =
   );
 
 const db = shouldForceLongPolling
-  ? initializeFirestore(app, { experimentalAutoDetectLongPolling: true, useFetchStreams: false })
+  ? initializeFirestore(app, { experimentalAutoDetectLongPolling: true })
   : getFirestore(app);
 const storage = getStorage(app);
 

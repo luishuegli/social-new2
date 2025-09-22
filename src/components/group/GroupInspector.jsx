@@ -6,20 +6,20 @@ import { motion } from 'framer-motion';
 import { Users, Check, Calendar, MapPin, Plus } from 'lucide-react';
 import LiquidGlass from '../ui/LiquidGlass';
 import MembersModal from '../ui/MembersModal';
+import UpNextActivity from './UpNextActivity';
 import { useAuth } from '@/app/contexts/AuthContext';
+import { useRSVP } from '@/app/hooks/useRSVP';
 import { arrayUnion, arrayRemove, doc, serverTimestamp, setDoc, updateDoc, collection, onSnapshot, query, where } from 'firebase/firestore';
 import { db } from '@/app/Lib/firebase';
 
 export default function GroupInspector({ group, onPlanActivity }) {
   const { user } = useAuth();
+  const { handleRSVP, isLoading } = useRSVP();
   const [plannedActivities, setPlannedActivities] = React.useState([]);
   const [nextActivityLive, setNextActivityLive] = React.useState(null);
   const [busyActivityId, setBusyActivityId] = React.useState(null);
   const [isMembersOpen, setIsMembersOpen] = React.useState(false);
 
-  if (!group) {
-    return null;
-  }
 
   // Display the first 6 member avatars
   const displayMembers = group.members?.slice(0, 6) || [];
@@ -65,55 +65,42 @@ export default function GroupInspector({ group, onPlanActivity }) {
     return () => unsub();
   }, [group?.nextActivity?.id]);
 
-  // Toggle RSVP helper with optimistic UI for the Up Next card
+  // Toggle RSVP helper using unified API for the Up Next card
   const toggleUpNextRsvp = async (isJoined) => {
     if (!user?.uid || !group?.nextActivity?.id) return;
     const activityId = group.nextActivity.id;
-    const currentParticipants = (nextActivityLive?.participants || group.nextActivity.participants) || [];
-    const optimisticParticipants = isJoined
-      ? currentParticipants.filter((pid) => pid !== user.uid)
-      : [...currentParticipants, user.uid];
 
-    // Optimistic update
-    setBusyActivityId(activityId);
-    setNextActivityLive({ ...(nextActivityLive || { id: activityId }), participants: optimisticParticipants });
+    const result = await handleRSVP({
+      activityId,
+      groupId: group.id,
+      action: isJoined ? 'leave' : 'join'
+    });
 
-    try {
-      await updateDoc(doc(db, 'activities', activityId), {
-        participants: isJoined ? arrayRemove(user.uid) : arrayUnion(user.uid),
-      });
-    } catch (e) {
-      // Revert on failure
-      setNextActivityLive({ ...(nextActivityLive || { id: activityId }), participants: currentParticipants });
-    } finally {
-      setBusyActivityId(null);
+    if (result) {
+      console.log('RSVP updated successfully for Up Next activity:', result);
+      // The real-time listener will update the UI
     }
   };
 
-  // Toggle RSVP in the Planned Activities list with optimistic UI
+  // Toggle RSVP in the Planned Activities list using unified API
   const togglePlannedRsvp = async (activity, isJoined) => {
     if (!user?.uid || !activity?.id) return;
-    const activityId = activity.id;
-    const currentParticipants = activity.participants || [];
-    const optimisticParticipants = isJoined
-      ? currentParticipants.filter((pid) => pid !== user.uid)
-      : [...currentParticipants, user.uid];
 
-    // Optimistic update
-    setBusyActivityId(activityId);
-    setPlannedActivities((prev) => prev.map((a) => a.id === activityId ? { ...a, participants: optimisticParticipants } : a));
+    const result = await handleRSVP({
+      activityId: activity.id,
+      groupId: group.id,
+      action: isJoined ? 'leave' : 'join'
+    });
 
-    try {
-      await updateDoc(doc(db, 'activities', activityId), {
-        participants: isJoined ? arrayRemove(user.uid) : arrayUnion(user.uid),
-      });
-    } catch (e) {
-      // Revert on failure
-      setPlannedActivities((prev) => prev.map((a) => a.id === activityId ? { ...a, participants: currentParticipants } : a));
-    } finally {
-      setBusyActivityId(null);
+    if (result) {
+      console.log('RSVP updated successfully for planned activity:', result);
+      // The real-time listener will update the UI
     }
   };
+
+  if (!group) {
+    return null;
+  }
 
   return (
     <>
@@ -216,81 +203,8 @@ export default function GroupInspector({ group, onPlanActivity }) {
             </LiquidGlass>
           </motion.div>
 
-          {/* UpNextActivity Module */}
-          {group.nextActivity && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ duration: 0.6, ease: "easeOut", delay: 0.1 }}
-            >
-              <LiquidGlass className="p-6">
-                <h2 className="text-lg font-bold text-content-primary mb-3">Up Next</h2>
-                
-                <div className="space-y-3">
-                  {/* Activity Title */}
-                  <h3 className="text-sm font-semibold text-content-primary">
-                    {group.nextActivity.title}
-                  </h3>
-
-                  {/* Activity Details */}
-                  <div className="space-y-2">
-                    <div className="flex items-center space-x-2">
-                      <Calendar className="w-4 h-4 text-content-secondary" />
-                      <span className="text-xs text-content-secondary">
-                        {new Date(group.nextActivity.date).toLocaleDateString('en-US', { 
-                          weekday: 'short', 
-                          month: 'short', 
-                          day: 'numeric' 
-                        })}
-                      </span>
-                    </div>
-
-                    {group.nextActivity.location && (
-                      <div className="flex items-center space-x-2">
-                        <MapPin className="w-4 h-4 text-content-secondary" />
-                        <span className="text-xs text-content-secondary truncate">
-                          {group.nextActivity.location}
-                        </span>
-                      </div>
-                    )}
-                  </div>
-
-                  {/* Who's coming (participants) */}
-                  {Array.isArray((nextActivityLive?.participants || group.nextActivity.participants)) && (
-                    <div className="flex items-center justify-between mt-2">
-                      <div className="flex -space-x-2">
-                        {(nextActivityLive?.participants || group.nextActivity.participants).slice(0,6).map((pid, idx) => (
-                          <div key={pid+idx} className="w-7 h-7 rounded-full bg-background-secondary border-2 border-background-primary flex items-center justify-center text-[10px] text-content-primary">{pid.slice(0,2).toUpperCase()}</div>
-                        ))}
-                        {(nextActivityLive?.participants || group.nextActivity.participants).length > 6 && (
-                          <div className="w-7 h-7 rounded-full bg-content-secondary border-2 border-background-primary flex items-center justify-center text-[10px] text-content-primary">+{(nextActivityLive?.participants || group.nextActivity.participants).length - 6}</div>
-                        )}
-                      </div>
-                      {user?.uid && (
-                        ((nextActivityLive?.participants || group.nextActivity.participants).includes(user.uid)) ? (
-                          <button
-                            onClick={() => toggleUpNextRsvp(true)}
-                            disabled={busyActivityId === group.nextActivity.id}
-                            className="px-3 py-2 text-xs font-semibold rounded-lg bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm disabled:opacity-50"
-                          >
-                            Cancel RSVP
-                          </button>
-                        ) : (
-                          <button
-                            onClick={() => toggleUpNextRsvp(false)}
-                            disabled={busyActivityId === group.nextActivity.id}
-                            className="px-3 py-2 text-xs font-semibold rounded-lg bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm disabled:opacity-50"
-                          >
-                            RSVP
-                          </button>
-                        )
-                      )}
-                    </div>
-                  )}
-                </div>
-              </LiquidGlass>
-            </motion.div>
-          )}
+          {/* Enhanced UpNextActivity Module */}
+          <UpNextActivity group={group} size="xl" showFomo={true} />
 
           {/* Planned Activities (RSVP) */}
           {plannedActivities.length > 0 && (
@@ -319,18 +233,18 @@ export default function GroupInspector({ group, onPlanActivity }) {
                           {joined ? (
                             <button
                               onClick={() => togglePlannedRsvp(a, true)}
-                              disabled={busyActivityId === a.id}
+                              disabled={isLoading(a.id)}
                               className="px-3 py-2 text-xs font-semibold rounded-lg bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm disabled:opacity-50"
                             >
-                              Cancel RSVP
+                              {isLoading(a.id) ? 'Updating...' : 'Cancel RSVP'}
                             </button>
                           ) : (
                             <button
                               onClick={() => togglePlannedRsvp(a, false)}
-                              disabled={busyActivityId === a.id}
+                              disabled={isLoading(a.id)}
                               className="px-3 py-2 text-xs font-semibold rounded-lg bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm disabled:opacity-50"
                             >
-                              Join Activity
+                              {isLoading(a.id) ? 'Updating...' : 'Join Activity'}
                             </button>
                           )}
                         </div>

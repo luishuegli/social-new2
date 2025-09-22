@@ -9,9 +9,9 @@ import { db } from '@/app/Lib/firebase';
 import { collection, limit, onSnapshot, orderBy, query } from 'firebase/firestore';
 
 export default function RecentChat({ group }) {
-  if (!group) return null;
   const [messages, setMessages] = useState([]);
   useEffect(() => {
+    if (!group?.id) return;
     const refCol = collection(db, 'groups', group.id, 'messages');
     const q = query(refCol, orderBy('timestamp', 'desc'), limit(5));
     const unsub = onSnapshot(
@@ -35,7 +35,9 @@ export default function RecentChat({ group }) {
       }
     );
     return () => unsub();
-  }, [group.id]);
+  }, [group?.id]);
+
+  if (!group) return null;
 
   return (
     <motion.div

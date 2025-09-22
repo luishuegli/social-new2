@@ -5,6 +5,7 @@ import { motion } from 'framer-motion';
 import AppLayout from '../components/AppLayout';
 import GroupCard from '../../components/ui/GroupCard';
 import FeaturedGroupCard from '../../components/ui/FeaturedGroupCard';
+import FomoGroupCard from '../../components/ui/FomoGroupCard';
 import { useGroups } from '../hooks/useGroups';
 import { Group } from '../types';
 
@@ -106,22 +107,33 @@ export default function GroupsPage() {
         ) : dashboardFeaturedGroup || dashboardStandardGroups.length > 0 ? (
           <div className="p-0">
             {/* Layout with featured group and standard groups grid */}
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 auto-rows-fr">
+            <div className="space-y-8">
               
-              {/* Featured Group Card - Full Width */}
+              {/* Featured Group Card - Extra Large */}
               {dashboardFeaturedGroup && (
-                <div className="col-span-full">
-                  <div className="mb-4">
-                    <h2 className="text-2xl font-bold">My Groups</h2>
+                <div>
+                  <div className="mb-6">
+                    <h2 className="text-3xl font-bold text-content-primary">Featured Group</h2>
+                    <p className="text-content-secondary mt-1">Don't miss what's happening next!</p>
                   </div>
-                  <FeaturedGroupCard group={dashboardFeaturedGroup} />
+                  <FomoGroupCard group={dashboardFeaturedGroup} size="xl" />
                 </div>
               )}
 
-              {/* Standard Group Cards - Grid Layout */}
-              {uniqueStandardGroups.map((group) => (
-                <GroupCard key={group.id} group={group} />
-              ))}
+              {/* Standard Group Cards - Larger Grid Layout */}
+              {uniqueStandardGroups.length > 0 && (
+                <div>
+                  <div className="mb-6">
+                    <h2 className="text-2xl font-bold text-content-primary">My Groups</h2>
+                    <p className="text-content-secondary mt-1">Stay connected with your communities</p>
+                  </div>
+                  <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
+                    {uniqueStandardGroups.map((group) => (
+                      <FomoGroupCard key={group.id} group={group} size="medium" />
+                    ))}
+                  </div>
+                </div>
+              )}
 
             </div>
           </div>
@@ -153,25 +165,6 @@ export default function GroupsPage() {
                   className="px-4 py-2 border border-border-separator text-content-secondary rounded-card hover:bg-background-secondary transition-colors"
                 >
                   Seed Demo Content
-                </button>
-                <button
-                  onClick={async () => {
-                    try {
-                      // In dev, join current user to all seeded groups
-                      const res = await fetch('/api/test-auth');
-                      const json = res.ok ? await res.json() : null;
-                      const uid = json?.uid || (window as any)?.CURRENT_USER_UID;
-                      if (uid) {
-                        await fetch(`/api/addUserToAllGroups?uid=${encodeURIComponent(uid)}`);
-                      }
-                      window.location.reload();
-                    } catch (e) {
-                      console.error('Join seeded groups failed', e);
-                    }
-                  }}
-                  className="px-4 py-2 bg-accent-primary text-background-primary rounded-card hover:bg-opacity-80 transition-colors"
-                >
-                  Join Seeded Groups
                 </button>
               </div>
             </div>

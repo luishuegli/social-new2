@@ -203,7 +203,7 @@ export default function GroupCard({ group }) {
                 <Calendar className="w-4 h-4 text-accent-primary flex-shrink-0" />
                 <div className="min-w-0 flex-1">
                   <span className="text-xs font-medium text-content-secondary">Next Up:</span>
-                  <p className="text-sm font-semibold text-content-primary truncate">
+                  <p className="text-sm font-bold text-content-primary truncate" style={{color: '#10b981'}}>
                     {group.nextActivity.title}
                   </p>
                   <p className="text-xs text-content-secondary">

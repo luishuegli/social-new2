@@ -8,7 +8,8 @@ import {
   signOut, 
   onAuthStateChanged,
   GoogleAuthProvider,
-  signInWithPopup
+  signInWithPopup,
+  updateProfile
 } from 'firebase/auth';
 import { auth } from '../Lib/firebase';
 import { useRouter } from 'next/navigation';
@@ -22,6 +23,7 @@ interface AuthContextType {
   signUp: (email: string, password: string) => Promise<void>;
   signInWithGoogle: () => Promise<void>;
   logout: () => Promise<void>;
+  updateProfile: (profile: { displayName?: string; photoURL?: string }) => Promise<void>;
 }
 
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
@@ -96,6 +98,19 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     }
   };
 
+  const updateUserProfile = async (profile: { displayName?: string; photoURL?: string }) => {
+    try {
+      if (!user) throw new Error('No user logged in');
+      await updateProfile(user, profile);
+      // Force a refresh of the user object to reflect changes
+      await user.reload();
+      setUser({ ...user });
+    } catch (error) {
+      console.error('Update profile error:', error);
+      throw error;
+    }
+  };
+
   const value = {
     user,
     loading,
@@ -103,6 +118,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     signUp,
     signInWithGoogle,
     logout,
+    updateProfile: updateUserProfile,
   };
 
   // Prevent hydration mismatch by not rendering until mounted
