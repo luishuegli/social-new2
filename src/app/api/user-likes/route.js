@@ -27,8 +27,28 @@ export async function GET(request) {
     }
 
     const userId = decodedToken.uid;
+    const { searchParams } = new URL(request.url);
+    const postId = searchParams.get('postId');
 
-    // Get all posts that this user has liked
+    // If postId is provided, check if this specific post is liked
+    if (postId) {
+      const likeRef = adminDb.collection('posts').doc(postId).collection('likes').doc(userId);
+      const likeDoc = await likeRef.get();
+      const isLiked = likeDoc.exists;
+
+      // Also get the current like count for this post
+      const postRef = adminDb.collection('posts').doc(postId);
+      const postDoc = await postRef.get();
+      const likeCount = postDoc.exists ? (postDoc.data()?.likes || 0) : 0;
+
+      return NextResponse.json({
+        success: true,
+        isLiked,
+        likeCount
+      });
+    }
+
+    // If no postId, get all posts that this user has liked
     const postsRef = adminDb.collection('posts');
     const postsSnapshot = await postsRef.get();
     

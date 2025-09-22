@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
 
 export interface LikeState {
@@ -10,15 +10,47 @@ export interface LikeState {
 }
 
 export function useInstagramLike(postId: string, initialCount: number = 0, initialIsLiked: boolean = false) {
-  const { user } = useAuth();
+  const { user, firebaseUser } = useAuth();
   const [likeState, setLikeState] = useState<LikeState>({
     count: initialCount,
     isLiked: initialIsLiked,
     isLoading: false
   });
 
+  // Fetch the user's like status when component mounts
+  useEffect(() => {
+    const fetchLikeStatus = async () => {
+      if (!firebaseUser || !postId) return;
+
+      try {
+        const token = await firebaseUser.getIdToken();
+        const response = await fetch(`/api/user-likes?postId=${postId}`, {
+          headers: {
+            'Authorization': `Bearer ${token}`
+          }
+        });
+
+        if (response.ok) {
+          const result = await response.json();
+          const isLiked = result.isLiked || false;
+          const likeCount = result.likeCount || 0;
+          
+          setLikeState(prev => ({
+            ...prev,
+            isLiked,
+            count: likeCount
+          }));
+        }
+      } catch (error) {
+        console.error('Error fetching like status:', error);
+      }
+    };
+
+    fetchLikeStatus();
+  }, [postId, firebaseUser]);
+
   const toggleLike = useCallback(async () => {
-    if (!user || likeState.isLoading) return;
+    if (!firebaseUser || likeState.isLoading) return;
 
     const newIsLiked = !likeState.isLiked;
     const newCount = likeState.count + (newIsLiked ? 1 : -1);
@@ -32,7 +64,7 @@ export function useInstagramLike(postId: string, initialCount: number = 0, initi
     }));
 
     try {
-      const token = await user.getIdToken();
+      const token = await firebaseUser.getIdToken();
       const response = await fetch('/api/like-post', {
         method: 'POST',
         headers: {
@@ -73,7 +105,7 @@ export function useInstagramLike(postId: string, initialCount: number = 0, initi
 
       throw error;
     }
-  }, [user, postId, likeState.isLoading, likeState.isLiked, likeState.count]);
+  }, [firebaseUser, postId, likeState.isLoading, likeState.isLiked, likeState.count]);
 
   const updateLikeState = useCallback((count: number, isLiked: boolean) => {
     setLikeState(prev => ({

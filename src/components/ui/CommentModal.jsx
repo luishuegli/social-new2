@@ -224,9 +224,9 @@ export default function CommentModal({
                 <form onSubmit={handleSubmitComment} className="p-4 border-t border-white/10">
                   <div className="flex items-start space-x-3">
                     <div className="w-8 h-8 rounded-full bg-white/10 flex items-center justify-center text-xs text-white font-semibold">
-                      {user.photoURL ? (
+                      {user.profilePictureUrl || user.photoURL ? (
                         <Image
-                          src={user.photoURL}
+                          src={user.profilePictureUrl || user.photoURL}
                           alt={user.displayName || 'You'}
                           width={32}
                           height={32}

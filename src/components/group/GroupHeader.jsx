@@ -9,6 +9,37 @@ import { db } from '@/app/Lib/firebase';
 import { useAuth } from '@/app/contexts/AuthContext';
 import LiquidGlass from '../ui/LiquidGlass';
 
+// MemberAvatar component with error handling
+function MemberAvatar({ member, index, totalMembers, size = "large" }) {
+  const [imageError, setImageError] = React.useState(false);
+  const isLarge = size === "large";
+  const sizeClasses = isLarge ? "w-10 h-10" : "w-8 h-8";
+  const imageSize = isLarge ? 40 : 24;
+  const textSize = isLarge ? "text-sm" : "text-xs";
+
+  return (
+    <div
+      className={`${sizeClasses} rounded-full border-2 border-background-primary overflow-hidden bg-background-secondary flex items-center justify-center`}
+      style={{ zIndex: totalMembers - index }}
+    >
+      {member.avatarUrl && !imageError ? (
+        <Image
+          src={member.avatarUrl}
+          alt={member.name}
+          width={imageSize}
+          height={imageSize}
+          className="w-full h-full object-cover"
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <span className={`${textSize} font-semibold text-content-primary`}>
+          {member.name?.charAt(0)?.toUpperCase() || '?'}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function GroupHeader({ group, onLeft }) {
   const { user } = useAuth();
   // Display the first 6 member avatars
@@ -59,25 +90,13 @@ export default function GroupHeader({ group, onLeft }) {
           <div className="flex items-center space-x-4">
             <div className="flex -space-x-3">
               {displayMembers.map((member, index) => (
-                <div
+                <MemberAvatar
                   key={member.id}
-                  className="w-10 h-10 rounded-full border-2 border-background-primary overflow-hidden bg-accent-primary flex items-center justify-center"
-                  style={{ zIndex: displayMembers.length - index }}
-                >
-                  {member.avatarUrl ? (
-                    <Image
-                      src={member.avatarUrl}
-                      alt={member.name}
-                      width={40}
-                      height={40}
-                      className="w-full h-full object-cover"
-                    />
-                  ) : (
-                    <span className="text-sm font-semibold text-content-primary">
-                      {member.name?.charAt(0)?.toUpperCase() || '?'}
-                    </span>
-                  )}
-                </div>
+                  member={member}
+                  index={index}
+                  totalMembers={displayMembers.length}
+                  size="large"
+                />
               ))}
               {remainingCount > 0 && (
                 <div className="w-10 h-10 rounded-full border-2 border-background-primary bg-content-secondary flex items-center justify-center">

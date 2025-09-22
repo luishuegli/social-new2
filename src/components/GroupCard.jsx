@@ -4,6 +4,35 @@ import React from 'react';
 import Image from 'next/image';
 import { Calendar, MessageSquare, CalendarPlus } from 'lucide-react';
 
+// MemberAvatar component with error handling
+function MemberAvatar({ member, index, totalMembers }) {
+  const [imageError, setImageError] = React.useState(false);
+
+  return (
+    <div
+      className={`w-8 h-8 rounded-full border-2 border-background-secondary overflow-hidden bg-background-secondary flex items-center justify-center ${
+        index > 0 ? '-ml-3' : ''
+      }`}
+      style={{ zIndex: totalMembers - index }}
+    >
+      {member.avatarUrl && !imageError ? (
+        <Image
+          src={member.avatarUrl}
+          alt={member.name}
+          width={32}
+          height={32}
+          className="w-full h-full object-cover"
+          onError={() => setImageError(true)}
+        />
+      ) : (
+        <span className="text-xs font-semibold text-content-primary">
+          {member.name?.charAt(0)?.toUpperCase() || '?'}
+        </span>
+      )}
+    </div>
+  );
+}
+
 export default function GroupCard({ group }) {
   // Take the first 3-4 members for the stacked avatars
   const displayMembers = group.members?.slice(0, 4) || [];
@@ -47,16 +76,11 @@ export default function GroupCard({ group }) {
         <div className="flex items-center flex-shrink-0">
           <div className="flex">
             {displayMembers.map((member, index) => (
-              <Image
-                key={index}
-                src={member.avatarUrl || '/api/placeholder/32/32'}
-                alt="Member avatar"
-                width={32}
-                height={32}
-                className={`rounded-full border-2 border-background-secondary ${
-                  index > 0 ? '-ml-3' : ''
-                }`}
-                style={{ zIndex: displayMembers.length - index }}
+              <MemberAvatar
+                key={member.id}
+                member={member}
+                index={index}
+                totalMembers={displayMembers.length}
               />
             ))}
           </div>

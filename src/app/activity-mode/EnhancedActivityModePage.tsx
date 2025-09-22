@@ -194,7 +194,7 @@ export default function EnhancedActivityModePage() {
                       alert('Error: ' + result.error);
                     }
                   } catch (error) {
-                    alert('Error: ' + error.message);
+                    alert('Error: ' + (error instanceof Error ? error.message : String(error)));
                   }
                 }}
                 className="px-4 py-2 bg-accent-primary text-white rounded-lg hover:bg-accent-secondary transition-colors"

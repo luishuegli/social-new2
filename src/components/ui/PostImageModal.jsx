@@ -50,6 +50,7 @@ export default function PostImageModal({
       text: newComment.trim(),
       authorId: user.uid,
       authorName: user.displayName || user.email || 'User',
+      authorAvatar: user.profilePictureUrl || user.photoURL || '',
       createdAt: serverTimestamp(),
     });
     setNewComment('');

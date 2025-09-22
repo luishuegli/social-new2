@@ -286,7 +286,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   </div>
                   <div className="min-w-0 text-center">
                     <p className="text-body font-semibold text-content-primary truncate">
-                      {user?.username || user?.displayName || 'User'}
+                      {user?.displayName || 'User'}
                     </p>
                   </div>
                 </div>

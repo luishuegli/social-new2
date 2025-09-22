@@ -88,7 +88,7 @@ export function useInstagramFeed() {
         ...prev,
         isLoading: false,
         isLoadingMore: false,
-        error: error.message || 'Failed to load feed'
+        error: error instanceof Error ? error.message : 'Failed to load feed'
       }));
     }
   }, [user, feedState.posts]);

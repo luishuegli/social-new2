@@ -39,7 +39,22 @@ export default function CollaborativePostCard({ post }) {
             {participants.map((m, idx) => (
               <div key={idx} className="w-8 h-8 rounded-full overflow-hidden ring-2 ring-black/40">
                 {m?.avatarUrl ? (
-                  <Image src={m.avatarUrl} alt={m.name || 'Member'} width={32} height={32} className="object-cover w-full h-full" />
+                  <>
+                    <Image 
+                      src={m.avatarUrl} 
+                      alt={m.name || 'Member'} 
+                      width={32} 
+                      height={32} 
+                      className="object-cover w-full h-full" 
+                      onError={(e) => {
+                        e.target.style.display = 'none';
+                        e.target.nextSibling.style.display = 'flex';
+                      }}
+                    />
+                    <div className="w-full h-full bg-white/10 flex items-center justify-center text-white text-xs" style={{ display: 'none' }}>
+                      {(m?.name || 'U').charAt(0).toUpperCase()}
+                    </div>
+                  </>
                 ) : (
                   <div className="w-full h-full bg-white/10 flex items-center justify-center text-white text-xs">
                     {(m?.name || 'U').charAt(0).toUpperCase()}

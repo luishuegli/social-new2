@@ -9,6 +9,7 @@ interface ProfilePictureUploadModalProps {
   isOpen: boolean;
   onClose: () => void;
   onSave: (croppedImageBlob: Blob) => void;
+  currentImageUrl?: string;
 }
 
 const CROP_AREA_SIZE = 280;
@@ -18,6 +19,7 @@ export default function ProfilePictureUploadModal({
   isOpen,
   onClose,
   onSave,
+  currentImageUrl,
 }: ProfilePictureUploadModalProps) {
   const [sourceUrl, setSourceUrl] = useState<string | null>(null);
   const [scale, setScale] = useState(1);
@@ -186,122 +188,85 @@ export default function ProfilePictureUploadModal({
 
   // Update preview whenever position or scale changes
   useEffect(() => {
-    if (!previewCanvasRef.current || !cropContainerRef.current || !imageRef.current || !sourceUrl) return;
-    
+    if (!previewCanvasRef.current || !imageRef.current || !sourceUrl) return;
+
     const canvas = previewCanvasRef.current;
     const ctx = canvas.getContext('2d');
     if (!ctx) return;
-    
-    // Clear canvas
-    ctx.clearRect(0, 0, 100, 100);
-    
+
+    const image = imageRef.current;
+    const { naturalWidth, naturalHeight } = image;
+
+    // Calculate the source rectangle from the original image
+    const sWidth = CROP_AREA_SIZE / scale;
+    const sHeight = CROP_AREA_SIZE / scale;
+    const sx = (naturalWidth / 2) - (sWidth / 2) - (position.x / scale);
+    const sy = (naturalHeight / 2) - (sHeight / 2) - (position.y / scale);
+
+    // Clear the canvas
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+
     // Apply circular clipping
-    ctx.save();
     ctx.beginPath();
-    ctx.arc(50, 50, 50, 0, Math.PI * 2);
+    ctx.arc(canvas.width / 2, canvas.height / 2, canvas.width / 2, 0, Math.PI * 2);
     ctx.clip();
-    
-    // Create a temporary canvas to capture the crop area
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = CROP_AREA_SIZE;
-    tempCanvas.height = CROP_AREA_SIZE;
-    const tempCtx = tempCanvas.getContext('2d');
-    if (!tempCtx) return;
-    
-    // Apply circular clipping to temp canvas
-    tempCtx.beginPath();
-    tempCtx.arc(CROP_AREA_SIZE / 2, CROP_AREA_SIZE / 2, CROP_AREA_SIZE / 2, 0, Math.PI * 2);
-    tempCtx.clip();
-    
-    // Apply the EXACT same transform as the visible image
-    tempCtx.save();
-    tempCtx.translate(CROP_AREA_SIZE / 2, CROP_AREA_SIZE / 2);
-    tempCtx.translate(position.x, position.y);
-    tempCtx.scale(scale, scale);
-    
-    // Draw image centered
-    tempCtx.drawImage(
-      imageRef.current,
-      -imageRef.current.naturalWidth / 2,
-      -imageRef.current.naturalHeight / 2,
-      imageRef.current.naturalWidth,
-      imageRef.current.naturalHeight
-    );
-    
-    tempCtx.restore();
-    
-    // Now scale the temp canvas to preview size
+
+    // Draw the calculated portion of the image onto the canvas
     ctx.drawImage(
-      tempCanvas,
-      0, 0, CROP_AREA_SIZE, CROP_AREA_SIZE,
-      0, 0, 100, 100
+      image,
+      sx,
+      sy,
+      sWidth,
+      sHeight,
+      0,
+      0,
+      canvas.width,
+      canvas.height
     );
-    
-    ctx.restore();
   }, [position, scale, sourceUrl]);
 
-  const onSaveClick = async () => {
-    if (!sourceUrl || !imageRef.current) return;
 
-    const img = imageRef.current;
-    
-    // Create a temporary canvas to capture EXACTLY what's visible in the crop circle
-    const tempCanvas = document.createElement('canvas');
-    tempCanvas.width = CROP_AREA_SIZE;
-    tempCanvas.height = CROP_AREA_SIZE;
-    const tempCtx = tempCanvas.getContext('2d');
-    if (!tempCtx) return;
+  const handleSave = () => {
+    if (!imageRef.current || !sourceUrl) return;
 
-    // Apply circular clipping to match the crop view
-    tempCtx.beginPath();
-    tempCtx.arc(CROP_AREA_SIZE / 2, CROP_AREA_SIZE / 2, CROP_AREA_SIZE / 2, 0, Math.PI * 2);
-    tempCtx.clip();
+    const image = imageRef.current;
+    const { naturalWidth, naturalHeight } = image;
+    const cropSize = 400; // The desired final size of the profile picture
 
-    // Replicate the EXACT transform from the crop view
-    // The CSS transform is: translate(-50%, -50%) translate(${position.x}px, ${position.y}px) scale(${scale})
-    tempCtx.save();
-    
-    // Move to center of canvas
-    tempCtx.translate(CROP_AREA_SIZE / 2, CROP_AREA_SIZE / 2);
-    
-    // Apply the position offset
-    tempCtx.translate(position.x, position.y);
-    
-    // Apply the scale
-    tempCtx.scale(scale, scale);
-    
-    // Draw the image centered (the -50%, -50% part)
-    tempCtx.drawImage(
-      img,
-      -img.naturalWidth / 2,
-      -img.naturalHeight / 2,
-      img.naturalWidth,
-      img.naturalHeight
+    // Create an off-screen canvas for the final cropped image
+    const offscreenCanvas = document.createElement('canvas');
+    offscreenCanvas.width = cropSize;
+    offscreenCanvas.height = cropSize;
+    const ctx = offscreenCanvas.getContext('2d');
+
+    if (!ctx) return;
+
+    // Calculate the source rectangle from the original image
+    const sWidth = CROP_AREA_SIZE / scale;
+    const sHeight = CROP_AREA_SIZE / scale;
+    const sx = (naturalWidth / 2) - (sWidth / 2) - (position.x / scale);
+    const sy = (naturalHeight / 2) - (sHeight / 2) - (position.y / scale);
+
+    // Apply circular clipping
+    ctx.beginPath();
+    ctx.arc(cropSize / 2, cropSize / 2, cropSize / 2, 0, Math.PI * 2);
+    ctx.clip();
+
+    // Draw the calculated portion of the image onto the canvas
+    ctx.drawImage(
+      image,
+      sx,
+      sy,
+      sWidth,
+      sHeight,
+      0,
+      0,
+      cropSize,
+      cropSize
     );
-    
-    tempCtx.restore();
 
-    // Now create the final output canvas
-    const outputCanvas = document.createElement('canvas');
-    const outputSize = 400;
-    outputCanvas.width = outputSize;
-    outputCanvas.height = outputSize;
-    const outputCtx = outputCanvas.getContext('2d');
-    if (!outputCtx) return;
-
-    // Apply circular clipping to output
-    outputCtx.beginPath();
-    outputCtx.arc(outputSize / 2, outputSize / 2, outputSize / 2, 0, Math.PI * 2);
-    outputCtx.clip();
-
-    // Draw the temporary canvas scaled to the output size
-    outputCtx.drawImage(
-      tempCanvas,
-      0, 0, CROP_AREA_SIZE, CROP_AREA_SIZE,
-      0, 0, outputSize, outputSize
-    );
-    
-    outputCanvas.toBlob((blob) => {
+    // Convert to blob and pass to onSave
+    offscreenCanvas.toBlob((blob) => {
       if (blob) {
         onSave(blob);
         onClose();
@@ -392,7 +357,7 @@ export default function ProfilePictureUploadModal({
                 <button onClick={resetState} className="flex items-center gap-2 text-sm font-medium text-white/70 hover:text-white">
                   <RotateCcw size={16} /> Reset
                 </button>
-                <button onClick={onSaveClick} disabled={!sourceUrl} className="px-6 py-2 bg-accent-primary text-white font-semibold rounded-lg hover:bg-opacity-80 disabled:opacity-50">
+                <button onClick={handleSave} disabled={!sourceUrl} className="px-6 py-2 bg-accent-primary text-white font-semibold rounded-lg hover:bg-opacity-80 disabled:opacity-50">
                   Save
                 </button>
               </div>

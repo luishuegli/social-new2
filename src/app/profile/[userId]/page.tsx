@@ -118,13 +118,24 @@ export default function UserProfilePage() {
                 <div className="relative">
                   <div className="w-24 h-24 rounded-full bg-accent-primary flex items-center justify-center overflow-hidden">
                     {user.avatar ? (
-                      <Image
-                        src={user.avatar}
-                        alt={user.name}
-                        width={96}
-                        height={96}
-                        className="w-full h-full object-cover"
-                      />
+                      <>
+                        <Image
+                          src={user.avatar}
+                          alt={user.name}
+                          width={96}
+                          height={96}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            e.target.style.display = 'none';
+                            e.target.nextSibling.style.display = 'flex';
+                          }}
+                        />
+                        <div className="w-full h-full flex items-center justify-center" style={{ display: 'none' }}>
+                          <span className="text-3xl font-bold text-content-primary">
+                            {user.name.charAt(0).toUpperCase()}
+                          </span>
+                        </div>
+                      </>
                     ) : (
                       <span className="text-3xl font-bold text-content-primary">
                         {user.name.charAt(0).toUpperCase()}
