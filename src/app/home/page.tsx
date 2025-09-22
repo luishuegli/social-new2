@@ -64,7 +64,7 @@ export default function HomePage() {
           >
             {posts.map((p) => (
               <motion.div key={p.id} variants={itemVariants}>
-                <PostCard post={p as any} onLike={() => {}} onComment={() => {}} />
+                <InstagramPostCard post={p} />
               </motion.div>
             ))}
           </motion.div>
