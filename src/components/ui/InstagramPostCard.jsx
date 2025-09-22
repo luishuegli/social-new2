@@ -66,12 +66,19 @@ export default function InstagramPostCard({ post }) {
           <div className="flex items-center space-x-3">
             <div className="relative">
               <NextImage
-                src={post.authorAvatar || '/default-avatar.png'}
-                alt={post.authorName || 'User avatar'}
+                src={post.userAvatar || post.authorAvatar || '/default-avatar.png'}
+                alt={post.userName || post.authorName || 'User avatar'}
                 width={32}
                 height={32}
                 className="rounded-full object-cover"
-                onError={() => setImageError(true)}
+                onError={(e) => {
+                  console.error('Image failed to load:', post.userAvatar || post.authorAvatar);
+                  console.error('Error details:', e);
+                  setImageError(true);
+                }}
+                onLoad={() => {
+                  console.log('Image loaded successfully:', post.userAvatar || post.authorAvatar);
+                }}
               />
               {post.authenticityType === 'Live Post' && (
                 <div className="absolute -top-1 -right-1 w-3 h-3 bg-red-500 rounded-full border-2 border-white animate-pulse" />
@@ -80,7 +87,7 @@ export default function InstagramPostCard({ post }) {
             <div>
               <div className="flex items-center space-x-2">
                 <span className="font-semibold text-content-primary text-sm">
-                  {post.authorName}
+                  {post.userName || post.authorName}
                 </span>
                 {post.authenticityType && (
                   <span className="px-2 py-0.5 text-xs bg-accent-primary text-white rounded-full">

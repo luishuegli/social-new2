@@ -57,6 +57,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           // If user doesn't have profile data, ensure they do
           if (!userData) {
+            console.log('User has no Firestore profile data, creating profile...');
             try {
               const token = await firebaseUser.getIdToken();
               const response = await fetch('/api/ensure-user-profile', {
@@ -71,6 +72,8 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const updatedUserDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
                 const updatedUserData = updatedUserDoc.data();
                 
+                console.log('User profile created/updated:', updatedUserData);
+                
                 const extendedUser = {
                   ...firebaseUser,
                   profilePictureUrl: updatedUserData?.profilePictureUrl
@@ -78,6 +81,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 
                 setUser(extendedUser);
               } else {
+                console.error('Failed to create user profile:', await response.text());
                 setUser(firebaseUser as ExtendedUser);
               }
             } catch (profileError) {
@@ -85,6 +89,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
               setUser(firebaseUser as ExtendedUser);
             }
           } else {
+            console.log('User has existing Firestore profile data:', userData);
             // Create extended user object with Firestore data
             const extendedUser = {
               ...firebaseUser,

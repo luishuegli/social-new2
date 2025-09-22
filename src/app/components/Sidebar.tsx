@@ -277,6 +277,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                         src={user.profilePictureUrl}
                         alt="Profile picture"
                         className="w-full h-full object-cover"
+                        onError={(e) => {
+                          console.error('Sidebar profile picture failed to load:', user.profilePictureUrl);
+                          console.error('Error details:', e);
+                        }}
+                        onLoad={() => {
+                          console.log('Sidebar profile picture loaded successfully:', user.profilePictureUrl);
+                        }}
                       />
                     ) : (
                       <span className="text-content-primary font-semibold text-body">
