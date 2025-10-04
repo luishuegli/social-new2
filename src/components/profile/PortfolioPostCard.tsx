@@ -27,12 +27,12 @@ export default function PortfolioPostCard({ post, className }: PortfolioPostCard
           transition={{ duration: 0.25 }}
           className={`absolute top-2 right-2 z-10 px-2 py-1 rounded-full text-xs font-semibold flex items-center gap-1 backdrop-blur-md ${
             showLive
-              ? 'bg-green-400/20 text-green-200 ring-1 ring-green-300/30'
+              ? 'bg-green-500/20 text-green-300 border border-green-400'
               : 'bg-blue-400/20 text-blue-200 ring-1 ring-blue-300/30'
           }`}
         >
           {showLive ? <Zap className="w-3 h-3" /> : <UsersIcon className="w-3 h-3" />}
-          {showLive ? 'Live' : 'Collab'}
+          {showLive ? 'LIVE' : 'Collab'}
         </motion.div>
       )}
 

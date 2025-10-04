@@ -127,3 +127,8 @@ export function useAuthenticatedApiCall<T = any>(options: Omit<ApiCallOptions, '
 export function usePublicApiCall<T = any>(options: ApiCallOptions = {}) {
   return useApiCall<T>({ ...options, requireAuth: false });
 }
+
+
+
+
+
