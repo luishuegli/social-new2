@@ -315,3 +315,8 @@ function generateActivityTags(activityName, category) {
   
   return baseTags;
 }
+
+
+
+
+

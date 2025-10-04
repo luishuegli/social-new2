@@ -170,3 +170,8 @@ src/app/api/
 5. **Real-time Features**: Live activity updates, chat during events
 
 The app has been transformed from a functional prototype into a visually stunning, user-friendly platform that rivals the best social apps in the market. The realistic activity names and modern design create an engaging experience that users will love to interact with daily.
+
+
+
+
+

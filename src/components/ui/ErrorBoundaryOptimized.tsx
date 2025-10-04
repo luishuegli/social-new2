@@ -128,3 +128,8 @@ class ErrorBoundaryOptimized extends Component<Props, State> {
 }
 
 export default ErrorBoundaryOptimized;
+
+
+
+
+

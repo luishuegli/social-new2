@@ -291,3 +291,8 @@ export default function GroupChatOptimized({ group }) {
     </LiquidGlass>
   );
 }
+
+
+
+
+

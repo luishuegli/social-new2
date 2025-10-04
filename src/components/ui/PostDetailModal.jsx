@@ -133,9 +133,9 @@ export default function PostDetailModal({ post, isOpen, onClose }) {
                 <div className="flex items-center justify-between p-4 border-b border-border-separator">
                   <div className="flex items-center space-x-3">
                     <NextImage
-                      src={post.authorAvatar || '/default-avatar.png'}
+                      src={post.authorAvatar || '/default-avatar.svg'}
                       alt={post.authorName || 'User avatar'}
-                      width={32}
+                      width={40}
                       height={32}
                       className="rounded-full object-cover"
                     />
@@ -160,9 +160,9 @@ export default function PostDetailModal({ post, isOpen, onClose }) {
                   {/* Caption */}
                   <div className="flex space-x-3">
                     <NextImage
-                      src={post.authorAvatar || '/default-avatar.png'}
+                      src={post.authorAvatar || '/default-avatar.svg'}
                       alt={post.authorName || 'User avatar'}
-                      width={32}
+                      width={40}
                       height={32}
                       className="rounded-full object-cover flex-shrink-0"
                     />
@@ -185,9 +185,9 @@ export default function PostDetailModal({ post, isOpen, onClose }) {
                   {commentState.comments.map((comment) => (
                     <div key={comment.id} className="flex space-x-3">
                       <NextImage
-                        src={comment.authorAvatar || '/default-avatar.png'}
+                        src={comment.authorAvatar || '/default-avatar.svg'}
                         alt={comment.authorName || 'User avatar'}
-                        width={32}
+                        width={40}
                         height={32}
                         className="rounded-full object-cover flex-shrink-0"
                       />
@@ -269,10 +269,10 @@ export default function PostDetailModal({ post, isOpen, onClose }) {
                   {/* Comment Input */}
                   <form onSubmit={handleCommentSubmit} className="flex items-center space-x-3">
                     <NextImage
-                      src={user?.profilePictureUrl || user?.photoURL || '/default-avatar.png'}
+                      src={user?.profilePictureUrl || user?.photoURL || '/default-avatar.svg'}
                       alt={user?.displayName || 'Your avatar'}
-                      width={24}
-                      height={24}
+                      width={32}
+                      height={32}
                       className="rounded-full object-cover flex-shrink-0"
                     />
                     <input

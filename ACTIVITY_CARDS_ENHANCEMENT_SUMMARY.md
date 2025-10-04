@@ -164,3 +164,8 @@ The new activity cards are designed to:
 - **Build Community**: Participant visibility encourages connections
 
 The result is a world-class activity discovery experience that rivals the best social platforms and drives maximum engagement through psychological triggers and exceptional design. 🎉
+
+
+
+
+
