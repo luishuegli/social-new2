@@ -95,12 +95,17 @@ export default function CompassPage() {
     }
   }, [user, fetchMatches]);
 
-  // Handle swipe action
-  const handleSwipe = async (targetId: string, action: 'connect' | 'skip') => {
-    if (!user || !firebaseUser) return;
+  // Handle connect or skip action
+  const handleAction = async (targetId: string, action: 'connect' | 'skip') => {
+    console.log(`handleAction called: targetId=${targetId}, action=${action}`);
+    if (!user || !firebaseUser) {
+      console.log('No user or firebaseUser, skipping action');
+      return;
+    }
 
     try {
       const token = await firebaseUser.getIdToken();
+      console.log(`Sending action to API: ${action} on ${targetId}`);
       const response = await fetch('/api/compass/log-swipe', {
         method: 'POST',
         headers: {
@@ -119,7 +124,7 @@ export default function CompassPage() {
           setConnectionTokens(data.remainingTokens);
         }
         
-        // Remove the swiped match from the list
+        // Remove the match from the list
         setMatches(prev => prev.filter(m => m.profile.uid !== targetId));
         
         // Fetch more matches if running low
@@ -129,11 +134,11 @@ export default function CompassPage() {
       } else {
         const errorData = await response.json();
         if (errorData.requiresTokens) {
-          setError('No connection tokens available. Tokens refresh daily!');
+          setError('You\'ve used all your connection requests for today. They refresh every 24 hours!');
         }
       }
     } catch (error) {
-      console.error('Error logging swipe:', error);
+      console.error('Error logging action:', error);
     }
   };
 
@@ -165,7 +170,7 @@ export default function CompassPage() {
             <Sparkles className="w-24 h-24 mx-auto mb-8 text-content-primary" />
             <h1 className="text-5xl font-bold mb-6">Tell us what you love!</h1>
             <p className="text-xl text-gray-600 dark:text-gray-300 mb-10">
-              Complete your profile to discover new friends and groups.
+              Complete your profile to find meaningful connections and authentic friendships.
             </p>
             <button
               onClick={() => window.location.href = '/onboarding'}
@@ -227,7 +232,7 @@ export default function CompassPage() {
               <div className="animate-pulse">
                 <Sparkles className="w-16 h-16 mx-auto mb-4 text-content-primary" />
               </div>
-              <p className="text-lg text-gray-600 dark:text-gray-300">Finding your matches...</p>
+              <p className="text-lg text-gray-600 dark:text-gray-300">Finding your perfect friend matches...</p>
             </div>
           </div>
         ) : matches.length > 0 ? (
@@ -235,7 +240,7 @@ export default function CompassPage() {
             {/* Discovery Card Deck */}
             <DiscoveryCardDeck
               matches={matches}
-              onSwipe={handleSwipe}
+              onSwipe={handleAction}
               connectionTokens={connectionTokens}
             />
           </div>
@@ -243,15 +248,15 @@ export default function CompassPage() {
           <div className="flex items-center justify-center py-32">
             <div className="text-center">
               <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-xl font-semibold mb-2">No matches available right now</h3>
+              <h3 className="text-xl font-semibold mb-2">No new connections available right now</h3>
               <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Check back later or try adjusting your filters
+                Check back later or try exploring different interest channels
               </p>
               <button
                 onClick={handleRefresh}
                 className="px-6 py-2 liquid-glass text-content-primary rounded-lg hover:opacity-90 transition-opacity"
               >
-                Refresh Matches
+                Discover New Friends
               </button>
             </div>
           </div>

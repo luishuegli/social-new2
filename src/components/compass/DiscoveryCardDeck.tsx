@@ -1,10 +1,9 @@
 'use client';
 
-import React, { useState, useMemo, useRef, useCallback } from 'react';
-import TinderCard from 'react-tinder-card';
-import { MatchResult, CoreInterest } from '@/app/types/firestoreSchema';
+import React, { useState, useCallback } from 'react';
+import { motion, AnimatePresence } from 'framer-motion';
+import { MatchResult } from '@/app/types/firestoreSchema';
 import StoryCard from './StoryCard';
-import { ChevronLeft, ChevronRight, X, Heart } from 'lucide-react';
 
 interface DiscoveryCardDeckProps {
   matches: MatchResult[];
@@ -17,88 +16,99 @@ export default function DiscoveryCardDeck({
   onSwipe,
   connectionTokens 
 }: DiscoveryCardDeckProps) {
-  const [currentIndex, setCurrentIndex] = useState(matches.length - 1);
-  const [isAnimating, setIsAnimating] = useState(false);
-  const currentIndexRef = useRef(currentIndex);
-  
-  const childRefs = useMemo(
-    () => Array(matches.length).fill(0).map(() => React.createRef<any>()),
-    [matches.length]
-  );
+  const [currentIndex, setCurrentIndex] = useState(0);
+  const [isTransitioning, setIsTransitioning] = useState(false);
+  const [exitDirection, setExitDirection] = useState<'left' | 'right' | null>(null);
 
-  const updateCurrentIndex = (val: number) => {
-    setCurrentIndex(val);
-    currentIndexRef.current = val;
-  };
+  const currentMatch = matches[currentIndex];
+  const hasMoreMatches = currentIndex < matches.length - 1;
 
-  const canSwipe = currentIndex >= 0;
+  const handleAction = useCallback((action: 'connect' | 'skip') => {
+    if (isTransitioning || !currentMatch) return;
 
-  const swiped = useCallback((direction: string, targetId: string, index: number) => {
-    updateCurrentIndex(index - 1);
-    const action = direction === 'right' ? 'connect' : 'skip';
-    onSwipe(targetId, action);
-  }, [onSwipe]);
+    setIsTransitioning(true);
+    setExitDirection(action === 'connect' ? 'right' : 'left');
 
-  const outOfFrame = useCallback((name: string, idx: number) => {
-    console.log(`${name} (${idx}) left the screen!`);
-    setIsAnimating(false);
-  }, []);
+    // Call the onSwipe callback
+    onSwipe(currentMatch.profile.uid!, action);
 
-  const swipe = useCallback(async (dir: 'left' | 'right') => {
-    if (canSwipe && currentIndex < matches.length && !isAnimating) {
-      setIsAnimating(true);
-      await childRefs[currentIndex].current?.swipe(dir);
-    }
-  }, [canSwipe, currentIndex, matches.length, isAnimating, childRefs]);
+    // Wait for animation to complete before showing next card
+    setTimeout(() => {
+      setCurrentIndex(prev => prev + 1);
+      setIsTransitioning(false);
+      setExitDirection(null);
+    }, 300);
+  }, [currentMatch, isTransitioning, onSwipe]);
 
   const handleConnect = useCallback((targetId: string, message?: string) => {
-    // This would trigger the connect swipe with a pre-filled message
-    swipe('right');
-    // In a real implementation, you'd also send the message with the connection request
-  }, [swipe]);
+    handleAction('connect');
+  }, [handleAction]);
 
   const handleSkip = useCallback(() => {
-    swipe('left');
-  }, [swipe]);
+    handleAction('skip');
+  }, [handleAction]);
+
+  if (!currentMatch) {
+    return (
+      <div className="text-center py-16">
+        <p className="text-gray-600 dark:text-gray-400">No more profiles to discover right now</p>
+      </div>
+    );
+  }
 
   return (
-    <div className="mt-8">
-      {/* Card Stack */}
-      <div className="relative h-[600px] flex items-center justify-center">
-        {matches.map((match, index) => (
-          <TinderCard
-            ref={childRefs[index]}
-            className="absolute w-full max-w-2xl"
-            key={`${match.profile.uid || 'unknown'}-${index}`}
-            onSwipe={(dir) => swiped(dir, match.profile.uid!, index)}
-            onCardLeftScreen={() => outOfFrame(match.profile.username || 'User', index)}
-            preventSwipe={['up', 'down']}
-          >
-            <div 
-              style={{ 
-                display: index === currentIndex ? 'block' : 'none',
-              }}
-            >
-              <StoryCard
-                match={match}
-                onConnect={handleConnect}
-                onSkip={handleSkip}
-                onSwipeRight={() => swipe('right')}
-                connectionTokens={connectionTokens}
-                isTopCard={index === currentIndex}
-                canSwipe={canSwipe}
-                isAnimating={isAnimating}
-                isDailyTopPick={index === 0}
-              />
-            </div>
-          </TinderCard>
-        ))}
-      </div>
+    <div className="relative">
+      {/* Card Display */}
+      <AnimatePresence mode="wait">
+        <motion.div
+          key={currentMatch.profile.uid}
+          initial={{ opacity: 0, scale: 0.95 }}
+          animate={{ opacity: 1, scale: 1 }}
+          exit={{
+            opacity: 0,
+            x: exitDirection === 'right' ? 100 : exitDirection === 'left' ? -100 : 0,
+            transition: { duration: 0.3 }
+          }}
+          transition={{ duration: 0.3 }}
+          className="w-full max-w-2xl mx-auto"
+        >
+          <StoryCard
+            match={currentMatch}
+            onConnect={handleConnect}
+            onSkip={handleSkip}
+            connectionTokens={connectionTokens}
+            isTopCard={true}
+            isAnimating={isTransitioning}
+            isDailyTopPick={currentIndex === 0}
+          />
+        </motion.div>
+      </AnimatePresence>
 
-      {/* Instructions */}
-      <div className="text-center mt-8 text-sm text-gray-500 dark:text-gray-400">
-        <p>Swipe right to connect • Swipe left to skip</p>
-      </div>
+      {/* Progress Indicator */}
+      {matches.length > 1 && (
+        <div className="mt-6 text-center">
+          <p className="text-sm text-gray-500 dark:text-gray-400">
+            {currentIndex + 1} of {matches.length} profiles
+          </p>
+          <div className="flex justify-center gap-1.5 mt-3">
+            {matches.slice(0, Math.min(matches.length, 10)).map((_, index) => (
+              <div
+                key={index}
+                className={`h-1.5 rounded-full transition-all ${
+                  index === currentIndex
+                    ? 'w-8 bg-accent-primary'
+                    : index < currentIndex
+                    ? 'w-1.5 bg-gray-400 dark:bg-gray-600'
+                    : 'w-1.5 bg-gray-300 dark:bg-gray-700'
+                }`}
+              />
+            ))}
+            {matches.length > 10 && (
+              <span className="text-xs text-gray-500 ml-2">+{matches.length - 10}</span>
+            )}
+          </div>
+        </div>
+      )}
     </div>
   );
 }
