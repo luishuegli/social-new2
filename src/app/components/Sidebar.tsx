@@ -168,8 +168,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
     { icon: Home, label: 'Home', href: '/' },
     { icon: MessageCircle, label: 'Action Center', href: '/action-center', badge: unread.totalUnread || undefined },
     { icon: Users, label: 'Groups', href: '/groups', badge: unread.groupsWithUnread || undefined },
-    { icon: Calendar, label: 'Calendar', href: '/calendar' },
-    { icon: Calendar, label: 'Live Activities', href: '/activity-mode' },
+    { icon: Calendar, label: 'Activities', href: '/activities' },
   ];
 
   return (

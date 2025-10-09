@@ -1,0 +1,271 @@
+/* Custom styles for react-big-calendar - Clean box-based design */
+
+/* Overall container */
+.rbc-calendar {
+  background: transparent;
+  color: var(--content-secondary);
+  border: none;
+  font-family: inherit;
+}
+
+/* Toolbar - Modern centered layout */
+.rbc-toolbar {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 24px;
+  padding: 0;
+  gap: 16px;
+}
+
+.rbc-toolbar .rbc-toolbar-label {
+  font-size: 1.25rem;
+  font-weight: 600;
+  color: white;
+  text-align: center;
+  flex: 1;
+  letter-spacing: -0.01em;
+}
+
+/* Toolbar buttons - Minimalist style */
+.rbc-toolbar button {
+  background: rgba(255, 255, 255, 0.1);
+  color: rgba(255, 255, 255, 0.7);
+  border: none;
+  padding: 8px 12px;
+  border-radius: 8px;
+  transition: all 0.2s ease;
+  font-size: 0.875rem;
+  font-weight: 500;
+  cursor: pointer;
+}
+
+.rbc-toolbar button:hover,
+.rbc-toolbar button:focus {
+  background: rgba(255, 255, 255, 0.15);
+  color: white;
+  outline: none;
+}
+
+.rbc-toolbar button:active {
+  transform: scale(0.98);
+}
+
+.rbc-btn-group {
+  display: inline-flex;
+  gap: 4px;
+}
+
+.rbc-btn-group button {
+  border-radius: 6px;
+  min-width: 60px;
+}
+
+.rbc-btn-group button.rbc-active {
+  background: rgba(255, 255, 255, 0.2);
+  color: white;
+  font-weight: 600;
+}
+
+/* Calendar Grid - No borders, clean spacing */
+.rbc-month-view {
+  border: none;
+  background: transparent;
+}
+
+.rbc-time-view,
+.rbc-agenda-view {
+  border: none;
+}
+
+/* Header cells (Mon, Tue, etc.) - Minimal, no borders */
+.rbc-header {
+  padding: 12px 8px;
+  text-align: center;
+  font-weight: 500;
+  font-size: 0.875rem;
+  color: rgba(255, 255, 255, 0.4);
+  border: none;
+  background: transparent;
+  text-transform: capitalize;
+}
+
+/* Month row container - No borders */
+.rbc-month-row {
+  border: none;
+  overflow: visible;
+  margin-bottom: 8px;
+}
+
+/* Day cells background - Individual boxes with spacing */
+.rbc-day-bg {
+  border: none;
+  background: transparent;
+  margin: 2px;
+}
+
+/* Outer days (previous/next month) */
+.rbc-off-range-bg {
+  background: transparent;
+}
+
+/* Today highlight - transparent unless it has events */
+.rbc-today {
+  background: transparent;
+}
+
+/* Date cell styling - Individual rounded boxes */
+.rbc-date-cell {
+  padding: 12px 8px;
+  text-align: center;
+  color: white;
+  font-weight: 400;
+  font-size: 1rem;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  min-height: 80px;
+  position: relative;
+}
+
+.rbc-date-cell > a {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 40px;
+  height: 40px;
+  border-radius: 10px;
+  transition: all 0.2s ease;
+  cursor: pointer;
+  background: transparent;
+  border: none;
+}
+
+/* Hover state for all dates */
+.rbc-date-cell:hover > a {
+  background: rgba(255, 255, 255, 0.05);
+}
+
+/* Today's date - subtle highlight */
+.rbc-today .rbc-date-cell > a {
+  background: rgba(99, 102, 241, 0.15);
+  font-weight: 600;
+}
+
+.rbc-today .rbc-date-cell:hover > a {
+  background: rgba(99, 102, 241, 0.2);
+}
+
+/* Dates with events - pill-shaped background */
+.rbc-row-segment .rbc-date-cell > a {
+  background: rgba(99, 102, 241, 0.2);
+  backdrop-filter: blur(10px);
+  font-weight: 600;
+  border: 1px solid rgba(99, 102, 241, 0.3);
+}
+
+.rbc-row-segment .rbc-date-cell:hover > a {
+  background: rgba(99, 102, 241, 0.3);
+  border-color: rgba(99, 102, 241, 0.4);
+}
+
+/* Today with events - stronger highlight */
+.rbc-today.rbc-row-segment .rbc-date-cell > a {
+  background: rgba(99, 102, 241, 0.35);
+  border: 1px solid rgba(99, 102, 241, 0.5);
+  font-weight: 700;
+}
+
+/* Off-range dates (other months) - very subtle */
+.rbc-off-range .rbc-date-cell {
+  color: rgba(255, 255, 255, 0.2);
+}
+
+.rbc-off-range .rbc-date-cell > a {
+  background: transparent;
+}
+
+.rbc-off-range .rbc-date-cell:hover > a {
+  background: rgba(255, 255, 255, 0.03);
+}
+
+/* Events - Small indicator dots below date number */
+.rbc-event {
+  background: none;
+  border: none;
+  padding: 0;
+  margin: 0;
+  font-size: 0.6875rem;
+  height: auto;
+  width: auto;
+  position: absolute;
+  bottom: 8px;
+  left: 50%;
+  transform: translateX(-50%);
+  color: rgba(134, 239, 172, 0.9);
+  font-weight: 500;
+  white-space: nowrap;
+  pointer-events: none;
+}
+
+.rbc-event-content {
+  display: none;
+}
+
+/* Row content */
+.rbc-row-content {
+  position: relative;
+  z-index: 1;
+}
+
+.rbc-row-content-scrollable {
+  display: flex;
+  flex-direction: column;
+}
+
+/* Hide default event rendering */
+.rbc-row-segment {
+  padding: 0;
+}
+
+/* Remove default event overlays */
+.rbc-overlay {
+  background: rgba(30, 30, 40, 0.98);
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 12px;
+  padding: 12px;
+  box-shadow: 0 10px 40px rgba(0, 0, 0, 0.5);
+}
+
+.rbc-overlay-header {
+  color: white;
+  font-weight: 600;
+  margin-bottom: 8px;
+}
+
+/* Show more link */
+.rbc-show-more {
+  color: rgba(99, 102, 241, 0.9);
+  font-weight: 500;
+  font-size: 0.75rem;
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 4px;
+  margin: 2px 0;
+}
+
+.rbc-show-more:hover {
+  color: rgba(99, 102, 241, 1);
+  text-decoration: underline;
+}
+
+/* Additional styling for cleaner look */
+.rbc-month-row + .rbc-month-row {
+  border-top: none;
+}
+
+.rbc-header + .rbc-header {
+  border-left: none;
+}

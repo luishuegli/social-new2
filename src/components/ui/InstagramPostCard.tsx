@@ -11,7 +11,25 @@ import LiquidGlass from './LiquidGlass';
 import CommentModal from './CommentModal';
 import PostDetailModal from './PostDetailModal';
 
-export default function InstagramPostCard({ post }) {
+interface Post {
+  id: string;
+  userName?: string;
+  authorName?: string;
+  userAvatar?: string;
+  authorAvatar?: string;
+  imageUrl?: string;
+  content?: string;
+  likes?: number;
+  isLiked?: boolean;
+  authenticityType?: 'Live Post' | 'Later Post';
+  createdAt: any; // Firestore timestamp
+}
+
+interface InstagramPostCardProps {
+  post: Post;
+}
+
+export default function InstagramPostCard({ post }: InstagramPostCardProps) {
   const { user } = useAuth();
   const [showComments, setShowComments] = useState(false);
   const [showPostDetail, setShowPostDetail] = useState(false);
@@ -33,11 +51,11 @@ export default function InstagramPostCard({ post }) {
     }
   };
 
-  const formatTimeAgo = (timestamp) => {
+  const formatTimeAgo = (timestamp: any): string => {
     if (!timestamp) return '';
     const now = new Date();
     const postTime = new Date(timestamp);
-    const diffInSeconds = Math.floor((now - postTime) / 1000);
+    const diffInSeconds = Math.floor((now.getTime() - postTime.getTime()) / 1000);
 
     if (diffInSeconds < 60) return 'now';
     if (diffInSeconds < 3600) return `${Math.floor(diffInSeconds / 60)}m`;
@@ -204,7 +222,7 @@ export default function InstagramPostCard({ post }) {
               
               {/* Show last 2 comments */}
               <div className="mt-1 space-y-1">
-                {commentState.comments.slice(-2).map((comment) => (
+                {commentState.comments.slice(-2).map((comment: any) => (
                   <div key={comment.id} className="text-sm">
                     <span className="font-semibold text-content-primary mr-2">
                       {comment.authorName}
