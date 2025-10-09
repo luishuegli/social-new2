@@ -62,14 +62,14 @@ export default function DiscoveryCardDeck({
   }, [swipe]);
 
   return (
-    <div className="relative mt-8">
+    <div className="mt-8">
       {/* Card Stack */}
       <div className="relative h-[600px] flex items-center justify-center">
         {matches.map((match, index) => (
           <TinderCard
             ref={childRefs[index]}
             className="absolute w-full max-w-lg"
-            key={match.profile.uid}
+            key={`${match.profile.uid || 'unknown'}-${index}`}
             onSwipe={(dir) => swiped(dir, match.profile.uid!, index)}
             onCardLeftScreen={() => outOfFrame(match.profile.username || 'User', index)}
             preventSwipe={['up', 'down']}
