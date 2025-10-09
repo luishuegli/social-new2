@@ -231,7 +231,7 @@ export default function CompassPage() {
             </div>
           </div>
         ) : matches.length > 0 ? (
-          <div className="max-w-lg mx-auto">
+          <div className="max-w-2xl mx-auto">
             {/* Discovery Card Deck */}
             <DiscoveryCardDeck
               matches={matches}

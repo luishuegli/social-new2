@@ -68,7 +68,7 @@ export default function DiscoveryCardDeck({
         {matches.map((match, index) => (
           <TinderCard
             ref={childRefs[index]}
-            className="absolute w-full max-w-lg"
+            className="absolute w-full max-w-2xl"
             key={`${match.profile.uid || 'unknown'}-${index}`}
             onSwipe={(dir) => swiped(dir, match.profile.uid!, index)}
             onCardLeftScreen={() => outOfFrame(match.profile.username || 'User', index)}
