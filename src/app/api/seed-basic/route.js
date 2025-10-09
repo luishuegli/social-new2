@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminDb, adminAuth, FieldValue } from '../../Lib/firebaseAdmin';
+import { adminDb, adminAuth, FieldValue } from '@/app/Lib/firebaseAdmin';
 
 // Comprehensive dev-only seeding endpoint: creates sample users, posts, comments, and likes.
 // Usage:

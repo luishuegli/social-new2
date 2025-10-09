@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminDb, adminAuth, FieldValue } from '../../Lib/firebaseAdmin';
+import { adminDb, adminAuth, FieldValue } from '@/app/Lib/firebaseAdmin';
 
 export async function POST(request) {
   try {

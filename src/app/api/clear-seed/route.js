@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminDb } from '../../Lib/firebaseAdmin';
+import { adminDb } from '@/app/Lib/firebaseAdmin';
 
 async function deleteCollection(collectionPath, batchSize = 300) {
   const collRef = adminDb.collection(collectionPath);

@@ -2,18 +2,9 @@
 
 import { useEffect, useState } from 'react';
 import { db } from '../Lib/firebase';
-import { doc, getDoc, collection, query, where, getDocs, onSnapshot } from 'firebase/firestore';
-
-export interface UserProfile {
-  id: string;
-  displayName?: string;
-  username?: string;
-  profilePictureUrl?: string;
-  bio?: string;
-  stats?: {
-    activitiesPlannedCount?: number;
-  };
-}
+import { collection, query, where, getDocs } from 'firebase/firestore';
+import { getUserProfile as fetchUserProfile } from '../services/dataService';
+import { UserProfile } from '../types/firestoreSchema';
 
 export function useUserProfile(userId?: string) {
   const [profile, setProfile] = useState<UserProfile | null>(null);
@@ -28,12 +19,14 @@ export function useUserProfile(userId?: string) {
 
     let cancelled = false;
 
-    // Live profile updates
-    const userRef = doc(db, 'users', userId);
-    const unsub = onSnapshot(userRef, (snap) => {
-      if (cancelled) return;
-      setProfile(snap.exists() ? ({ id: snap.id, ...(snap.data() as any) }) : { id: userId });
-    });
+    const fetchProfileData = async () => {
+      const userProfile = await fetchUserProfile(userId);
+      if (!cancelled) {
+        setProfile(userProfile);
+      }
+    };
+
+    fetchProfileData();
 
     // Fetch counts (one-off)
     (async () => {
@@ -47,7 +40,7 @@ export function useUserProfile(userId?: string) {
       }
     })();
 
-    return () => { cancelled = true; unsub(); };
+    return () => { cancelled = true; };
   }, [userId]);
 
   return { profile, counts };

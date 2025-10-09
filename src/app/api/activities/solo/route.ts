@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminDb, FieldValue } from '../../../Lib/firebaseAdmin';
+import { adminDb, FieldValue } from '@/app/Lib/firebaseAdmin';
 
 // POST: Create a new solo activity
 export async function POST(request) {

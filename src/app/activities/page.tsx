@@ -10,10 +10,13 @@ import { motion } from 'framer-motion';
 import { Zap, TrendingUp, Users, Clock, List, Calendar as CalendarIcon } from 'lucide-react';
 import EnhancedActivityCard from '../../components/ui/EnhancedActivityCard';
 import CalendarView from '../components/CalendarView';
-import { dataService } from '../lib/dataService';
+import { dataService } from '../Lib/dataService';
 
 interface Activity extends DocumentData {
   id: string;
+  title?: string;
+  date?: any;
+  [key: string]: any;
 }
 
 export default function ActivitiesPage() {
@@ -49,8 +52,8 @@ export default function ActivitiesPage() {
         
         // Use the data service to get group information
         const myGroups = await dataService.getMyGroups(user.uid);
-        const groupIds = myGroups.map(g => g.id);
-        const groupInfoById = myGroups.reduce((acc, g) => {
+        const groupIds = myGroups.map((g: any) => g.id);
+        const groupInfoById = myGroups.reduce((acc: any, g: any) => {
           acc[g.id] = { name: g.name || 'Group', coverImage: g.coverImage || '' };
           return acc;
         }, {});

@@ -42,12 +42,11 @@ export function useConversations() {
           let otherAvatar = '';
           if (otherId) {
             try {
-              const otherRef = doc(db, 'users', otherId);
-              const profile = await getDoc(otherRef);
-              if (profile.exists()) {
-                const pd: any = profile.data();
-                otherName = pd.displayName || otherId;
-                otherAvatar = pd.profilePictureUrl || '';
+              const { getUserProfile } = await import('../services/dataService');
+              const profile = await getUserProfile(otherId);
+              if (profile) {
+                otherName = profile.displayName || otherId;
+                otherAvatar = profile.profilePictureUrl || '';
               }
             } catch {}
           }

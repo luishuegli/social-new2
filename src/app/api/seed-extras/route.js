@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminDb, FieldValue } from '../../Lib/firebaseAdmin';
+import { adminDb, FieldValue } from '@/app/Lib/firebaseAdmin';
 
 function addHours(date, h) { const d = new Date(date); d.setHours(d.getHours() + h); return d; }
 

@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminDb, adminAuth, FieldValue } from '../../../../Lib/firebaseAdmin';
+import { adminDb, adminAuth, FieldValue } from '@/app/Lib/firebaseAdmin';
 
 // GET /api/posts/[postId]/comments
 export async function GET(_request, { params }) {

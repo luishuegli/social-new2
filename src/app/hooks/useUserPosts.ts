@@ -1,9 +1,10 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { db } from '../Lib/firebase';
+import { useState, useEffect } from 'react';
 import { collection, query, where, orderBy, onSnapshot } from 'firebase/firestore';
-import { Post } from '../types';
+import { db } from '../Lib/firebase';
+import { Post } from '../types/firestoreSchema';
+import { getUserProfile } from '../services/dataService';
 
 export function useUserPosts(userId?: string) {
   const [posts, setPosts] = useState<Post[]>([]);
@@ -14,30 +15,18 @@ export function useUserPosts(userId?: string) {
       return;
     }
 
-    const postsRef = collection(db, 'posts');
-    const q = query(postsRef, where('authorId', '==', userId), orderBy('timestamp', 'desc'));
-    const unsub = onSnapshot(q, (snap) => {
-      const items: Post[] = [];
-      snap.forEach((d) => {
-        const data: any = d.data();
-        items.push({
-          id: d.id,
-          userName: data.authorName || data.authorId || 'User',
-          userAvatar: data.authorAvatar || '',
-          timestamp: data.timestamp?.toDate?.().toISOString?.() || new Date().toISOString(),
-          content: data.description || data.activityTitle || '',
-          imageUrl: data.media?.[0]?.url,
-          likes: data.likes || 0,
-          comments: data.comments || 0,
-          isLiked: false,
-          // include metadata so filters/badges work
-          postType: (data.postType as 'Collaborative' | 'Individual' | undefined) || 'Individual',
-          authenticityType: data.authenticityType as 'Live Post' | 'Later Post' | undefined,
-        });
-      });
-      setPosts(items);
+    const q = query(collection(db, 'posts'), where('authorId', '==', userId), orderBy('timestamp', 'desc'));
+    const unsub = onSnapshot(q, async (snap) => {
+      const allPosts: Post[] = [];
+      for (const doc of snap.docs) {
+        const data = doc.data() as Post;
+        const author = await getUserProfile(data.authorId);
+        allPosts.push({ ...data, id: doc.id, author });
+      }
+      setPosts(allPosts);
     });
-    return () => unsub();
+
+    return unsub;
   }, [userId]);
 
   return { posts };

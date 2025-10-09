@@ -20,6 +20,65 @@ body {
   touch-action: manipulation;
 }
 
+/* Custom slider styles for passion level selector */
+.slider {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  outline: none !important;
+  background: #374151 !important;
+  height: 8px !important;
+}
+
+.slider::-webkit-slider-thumb {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  cursor: pointer !important;
+  border: 2px solid #374151 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+  transition: all 0.2s ease !important;
+}
+
+.slider::-webkit-slider-thumb:hover {
+  transform: scale(1.1) !important;
+  box-shadow: 0 4px 8px rgba(255, 255, 255, 0.3) !important;
+}
+
+.slider::-moz-range-thumb {
+  width: 20px !important;
+  height: 20px !important;
+  border-radius: 50% !important;
+  background: #ffffff !important;
+  cursor: pointer !important;
+  border: 2px solid #374151 !important;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.3) !important;
+  transition: all 0.2s ease !important;
+}
+
+.slider::-moz-range-thumb:hover {
+  transform: scale(1.1) !important;
+  box-shadow: 0 4px 8px rgba(255, 255, 255, 0.3) !important;
+}
+
+/* Additional slider track styling */
+.slider::-webkit-slider-track {
+  -webkit-appearance: none !important;
+  appearance: none !important;
+  background: #374151 !important;
+  height: 8px !important;
+  border-radius: 4px !important;
+}
+
+.slider::-moz-range-track {
+  background: #374151 !important;
+  height: 8px !important;
+  border-radius: 4px !important;
+  border: none !important;
+}
+
 /* Remove tap highlights */
 input, textarea, button, select, a {
   -webkit-tap-highlight-color: transparent;

@@ -1,6 +1,6 @@
 // src/app/api/health-check/route.js
 import { NextResponse } from 'next/server';
-import { adminDb } from '../../Lib/firebaseAdmin';
+import { adminDb } from '@/app/Lib/firebaseAdmin';
 
 export async function GET(request) {
   const startTime = Date.now();
