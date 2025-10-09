@@ -41,11 +41,37 @@ export function usePostableActivities(): {
           if (data?.status === 'active' && 
               participants.includes(user.uid) && 
               !left.includes(user.uid)) {
+            // Properly handle Firestore Timestamp or Date objects
+            let activityDate: Date;
+            try {
+              if (data.date && typeof data.date.toDate === 'function') {
+                // Firestore Timestamp
+                activityDate = data.date.toDate();
+              } else if (data.date instanceof Date) {
+                // Already a Date object
+                activityDate = data.date;
+              } else if (data.date) {
+                // Try to parse as Date
+                activityDate = new Date(data.date);
+              } else {
+                // Fallback to current date
+                activityDate = new Date();
+              }
+              
+              // Validate the date
+              if (isNaN(activityDate.getTime())) {
+                activityDate = new Date();
+              }
+            } catch (error) {
+              console.warn('Failed to parse activity date:', error);
+              activityDate = new Date();
+            }
+            
             items.push({
               groupId: String(data.groupId || ''),
               id: d.id,
               title: String(data.title || 'Active Activity'),
-              date: new Date(String(data.date || Date.now())),
+              date: activityDate,
               location: data.location,
               type: data.type,
             });
@@ -78,7 +104,29 @@ export function usePostableActivities(): {
         })
         .map(({ group, activity }) => {
           const a: Activity = activity as unknown as Activity;
-          const parsedDate = new Date(String(a.date));
+          // Properly handle date parsing for group activities
+          let parsedDate: Date;
+          try {
+            if (a.date && typeof a.date === 'string') {
+              parsedDate = new Date(a.date);
+            } else if (a.date instanceof Date) {
+              parsedDate = a.date;
+            } else if (a.date && typeof a.date.toDate === 'function') {
+              // Firestore Timestamp
+              parsedDate = a.date.toDate();
+            } else {
+              parsedDate = new Date();
+            }
+            
+            // Validate the date
+            if (isNaN(parsedDate.getTime())) {
+              parsedDate = new Date();
+            }
+          } catch (error) {
+            console.warn('Failed to parse group activity date:', error);
+            parsedDate = new Date();
+          }
+          
           return {
           groupId: group.id,
           id: a.id,

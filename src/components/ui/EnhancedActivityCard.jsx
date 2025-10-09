@@ -27,20 +27,27 @@ export default function EnhancedActivityCard({
   activity, 
   onStartActivity,
   isActive = false,
-  size = 'large'
+  size = 'large',
+  onActivityUpdate // New prop to handle activity updates
 }) {
   const { user } = useAuth?.() || { user: null };
   const [rsvpStatus, setRsvpStatus] = useState('none'); // 'going', 'maybe', 'left', 'none'
   const [rsvpLoading, setRsvpLoading] = useState(false);
   const [showDetails, setShowDetails] = useState(false);
+  const [localActivity, setLocalActivity] = useState(activity);
+
+  // Update local activity when prop changes
+  useEffect(() => {
+    setLocalActivity(activity);
+  }, [activity]);
 
   // Determine current RSVP status
   useEffect(() => {
-    if (!user?.uid || !activity) return;
+    if (!user?.uid || !localActivity) return;
     
-    const participants = activity.participants || [];
-    const interested = activity.interested || [];
-    const left = activity.left || [];
+    const participants = localActivity.participants || [];
+    const interested = localActivity.interested || [];
+    const left = localActivity.left || [];
     
     if (participants.includes(user.uid)) {
       setRsvpStatus('going');
@@ -51,10 +58,10 @@ export default function EnhancedActivityCard({
     } else {
       setRsvpStatus('none');
     }
-  }, [user?.uid, activity]);
+  }, [user?.uid, localActivity]);
 
   const handleRSVP = async (action) => {
-    if (!user?.uid || !activity || rsvpLoading) return;
+    if (!user?.uid || !localActivity || rsvpLoading) return;
     
     setRsvpLoading(true);
     try {
@@ -62,24 +69,54 @@ export default function EnhancedActivityCard({
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({
-          activityId: activity.id,
-          groupId: activity.groupId,
+          activityId: localActivity.id,
+          groupId: localActivity.groupId,
           userId: user.uid,
           action: action
         })
       });
       
       if (response.ok) {
-        setRsvpStatus(action);
+        const result = await response.json();
+        console.log('RSVP successful:', result);
+        
+        // Update local activity state immediately for better UX
+        const updatedActivity = {
+          ...localActivity,
+          participants: result.participants || localActivity.participants || [],
+          interested: result.interested || localActivity.interested || [],
+          left: result.left || localActivity.left || []
+        };
+        
+        setLocalActivity(updatedActivity);
+        
+        // Notify parent component to refresh the activity list
+        if (onActivityUpdate) {
+          onActivityUpdate(updatedActivity);
+        }
+        
+        // Update RSVP status
+        if (action === 'join') {
+          setRsvpStatus('going');
+        } else if (action === 'maybe') {
+          setRsvpStatus('maybe');
+        } else if (action === 'leave') {
+          setRsvpStatus('left');
+        }
+      } else {
+        const errorData = await response.json();
+        console.error('RSVP failed:', errorData);
+        // Could show a toast notification here
       }
     } catch (error) {
       console.error('RSVP error:', error);
+      // Could show a toast notification here
     } finally {
       setRsvpLoading(false);
     }
   };
 
-  const activityDate = activity.date ? new Date(activity.date) : new Date();
+  const activityDate = localActivity.date ? new Date(localActivity.date) : new Date();
   const now = new Date();
   const timeDiff = activityDate.getTime() - now.getTime();
   const hoursDiff = Math.ceil(timeDiff / (1000 * 60 * 60));
@@ -87,9 +124,9 @@ export default function EnhancedActivityCard({
   const isHappening = Math.abs(timeDiff) < 2 * 3600 * 1000;
   const isUrgent = hoursDiff <= 24 && hoursDiff > 0;
 
-  const participants = activity.participants || [];
-  const interested = activity.interested || [];
-  const left = activity.left || [];
+  const participants = localActivity.participants || [];
+  const interested = localActivity.interested || [];
+  const left = localActivity.left || [];
   const participantCount = participants.length;
   const interestedCount = interested.length;
   const leftCount = left.length;
@@ -106,7 +143,7 @@ export default function EnhancedActivityCard({
       <LiquidGlass className="p-6 overflow-hidden">
         {/* Status Badges */}
         <div className="absolute top-4 right-4 z-10 flex flex-col gap-2">
-          {activity.status === 'active' && (
+          {localActivity.status === 'active' && (
             <motion.div
               animate={{ 
                 boxShadow: [
@@ -122,7 +159,7 @@ export default function EnhancedActivityCard({
             </motion.div>
           )}
           
-          {isUrgent && !isHappening && activity.status !== 'active' && (
+          {isUrgent && !isHappening && localActivity.status !== 'active' && (
             <div className="px-3 py-1 bg-accent-secondary text-white text-xs font-bold rounded-full flex items-center gap-1">
               <Timer className="w-3 h-3" />
               SOON
@@ -131,11 +168,11 @@ export default function EnhancedActivityCard({
         </div>
 
         {/* Activity Image */}
-        {activity.imageUrl ? (
+        {localActivity.imageUrl ? (
           <div className="relative h-40 rounded-lg overflow-hidden mb-4 cursor-pointer" onClick={() => setShowDetails(true)}>
             <img
-              src={activity.imageUrl}
-              alt={activity.title}
+              src={localActivity.imageUrl}
+              alt={localActivity.title}
               className="w-full h-full object-cover group-hover:scale-105 transition-transform duration-300"
             />
             <div className="absolute inset-0 bg-gradient-to-t from-black/30 to-transparent" />
@@ -154,26 +191,26 @@ export default function EnhancedActivityCard({
         {/* Activity Header */}
         <div className="mb-4">
           <h3 className="text-xl font-bold text-content-primary mb-2 line-clamp-2">
-            {activity.title}
+            {localActivity.title}
           </h3>
           <div className="flex items-center space-x-2 text-content-secondary mb-2">
             <Calendar className="w-4 h-4" />
-            <span className="text-sm">{activity.groupName}</span>
+            <span className="text-sm">{localActivity.groupName}</span>
           </div>
           
-          {activity.description && (
+          {localActivity.description && (
             <p className="text-sm text-content-secondary line-clamp-2">
-              {activity.description}
+              {localActivity.description}
             </p>
           )}
         </div>
 
         {/* Activity Details */}
         <div className="space-y-2 mb-4">
-          {activity.location && (
+          {localActivity.location && (
             <div className="flex items-center space-x-2">
               <MapPin className="w-4 h-4 text-content-secondary" />
-              <span className="text-sm text-content-secondary">{activity.location}</span>
+              <span className="text-sm text-content-secondary">{localActivity.location}</span>
             </div>
           )}
           
@@ -214,7 +251,7 @@ export default function EnhancedActivityCard({
                 <span className="text-xs text-green-500 font-medium">Going ({participantCount})</span>
               </div>
               <div className="flex -space-x-1 ml-5">
-                {activity.participantProfiles?.slice(0, 8).map((participant, idx) => (
+                {localActivity.participantProfiles?.slice(0, 8).map((participant, idx) => (
                   <div
                     key={participant.id || idx}
                     className="w-6 h-6 rounded-full border-2 border-green-500 overflow-hidden bg-accent-muted"
@@ -249,7 +286,7 @@ export default function EnhancedActivityCard({
                 <span className="text-xs text-yellow-500 font-medium">Maybe ({interestedCount})</span>
               </div>
               <div className="flex -space-x-1 ml-5">
-                {activity.interestedProfiles?.slice(0, 8).map((participant, idx) => (
+                {localActivity.interestedProfiles?.slice(0, 8).map((participant, idx) => (
                   <div
                     key={participant.id || idx}
                     className="w-6 h-6 rounded-full border-2 border-yellow-500 overflow-hidden bg-accent-muted"
@@ -284,7 +321,7 @@ export default function EnhancedActivityCard({
                 <span className="text-xs text-red-500 font-medium">Left ({leftCount})</span>
               </div>
               <div className="flex -space-x-1 ml-5">
-                {activity.leftProfiles?.slice(0, 8).map((participant, idx) => (
+                {localActivity.leftProfiles?.slice(0, 8).map((participant, idx) => (
                   <div
                     key={participant.id || idx}
                     className="w-6 h-6 rounded-full border-2 border-red-500 overflow-hidden bg-accent-muted opacity-50"
@@ -364,7 +401,7 @@ export default function EnhancedActivityCard({
             </div>
           ) : (
             <button
-              onClick={() => onStartActivity?.(activity.id)}
+              onClick={() => onStartActivity?.(localActivity.id)}
               className="flex-1 px-4 py-3 bg-accent-primary hover:bg-accent-secondary text-content-primary rounded-lg font-semibold transition-colors flex items-center justify-center space-x-2"
             >
               <Zap className="w-4 h-4" />

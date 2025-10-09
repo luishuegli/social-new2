@@ -67,7 +67,25 @@ export default function LivePostCreatePage() {
         // Activity info
         activityTitle: activity.title,
         activityCategory: activity.type || 'General',
-        activityDate: activity.date ? activity.date.toISOString() : new Date().toISOString(),
+        activityDate: (() => {
+          try {
+            // Ensure we have a valid date object
+            if (activity.date instanceof Date) {
+              return activity.date.toISOString();
+            } else if (activity.date) {
+              // Try to convert to Date and validate
+              const date = new Date(activity.date);
+              if (!isNaN(date.getTime())) {
+                return date.toISOString();
+              }
+            }
+            // Fallback to current date
+            return new Date().toISOString();
+          } catch (error) {
+            console.warn('Failed to parse activity date for post:', error);
+            return new Date().toISOString();
+          }
+        })(),
         activityDescription: '',
         
         // Post content
@@ -163,7 +181,22 @@ export default function LivePostCreatePage() {
               {activity.location || 'Current location'}
               <span className="mx-1">•</span>
               <Calendar className="w-3 h-3" />
-              {new Date(activity.date).toLocaleDateString()}
+              {(() => {
+                try {
+                  if (activity.date instanceof Date) {
+                    return activity.date.toLocaleDateString();
+                  } else if (activity.date) {
+                    const date = new Date(activity.date);
+                    if (!isNaN(date.getTime())) {
+                      return date.toLocaleDateString();
+                    }
+                  }
+                  return 'Date TBD';
+                } catch (error) {
+                  console.warn('Failed to format activity date:', error);
+                  return 'Date TBD';
+                }
+              })()}
             </p>
           </div>
         </div>
