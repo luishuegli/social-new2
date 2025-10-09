@@ -15,7 +15,7 @@ import {
   Music,
   Camera,
   X,
-  Heart
+  UserPlus
 } from 'lucide-react';
 import PhotoCarousel from './PhotoCarousel';
 
@@ -23,10 +23,8 @@ interface StoryCardProps {
   match: MatchResult;
   onConnect: (targetId: string, message?: string) => void;
   onSkip: () => void;
-  onSwipeRight: () => void;
   connectionTokens: number;
   isTopCard?: boolean;
-  canSwipe?: boolean;
   isAnimating?: boolean;
   isDailyTopPick?: boolean;
 }
@@ -42,14 +40,13 @@ export default function StoryCard({
   match, 
   onConnect, 
   onSkip,
-  onSwipeRight,
   connectionTokens,
   isTopCard,
-  canSwipe = true,
   isAnimating = false,
   isDailyTopPick = false
 }: StoryCardProps) {
   const [showDetails, setShowDetails] = useState(false);
+  const [customMessage, setCustomMessage] = useState('');
   
   // Get archetype color and icon
   const getArchetypeStyle = (archetype: string) => {
@@ -128,6 +125,29 @@ export default function StoryCard({
 
   const icebreakers = generateIcebreakers();
 
+  // Get connection purpose based on profile
+  const getConnectionPurpose = () => {
+    const purposes = [];
+    if (sharedInterests.some(i => i.tag.includes('coffee') || i.tag.includes('food'))) {
+      purposes.push('☕ Coffee chats');
+    }
+    if (sharedInterests.some(i => i.tag.includes('game') || i.tag.includes('gaming'))) {
+      purposes.push('🎮 Gaming sessions');
+    }
+    if (sharedInterests.some(i => i.tag.includes('movie') || i.tag.includes('film'))) {
+      purposes.push('🎬 Movie nights');
+    }
+    if (sharedInterests.some(i => i.type === 'in-person')) {
+      purposes.push('🤝 In-person hangouts');
+    }
+    if (purposes.length === 0) {
+      purposes.push('💬 Casual hangouts', '🎯 Shared activities');
+    }
+    return purposes.slice(0, 3);
+  };
+
+  const connectionPurposes = getConnectionPurpose();
+
   return (
     <div className="liquid-glass rounded-xl shadow-xl overflow-hidden border border-gray-200/20 dark:border-gray-700/20">
       {/* Daily Top Pick Banner */}
@@ -140,7 +160,7 @@ export default function StoryCard({
             </div>
             <div className="text-right">
               <div className="text-2xl font-bold text-accent-primary">{match.score}%</div>
-              <div className="text-xs text-gray-600 dark:text-gray-400">match</div>
+              <div className="text-xs text-gray-600 dark:text-gray-400">new friend match</div>
             </div>
           </div>
         </div>
@@ -218,9 +238,63 @@ export default function StoryCard({
           </p>
         )}
 
+        {/* Why We Matched Section */}
+        <div className="mb-6 p-4 liquid-glass rounded-lg border border-accent-primary/20">
+          <div className="flex items-center space-x-2 mb-3">
+            <Sparkles className="w-5 h-5 text-accent-primary" />
+            <h3 className="text-lg font-bold text-content-primary">Why You Match</h3>
+          </div>
+          <div className="space-y-2 text-sm">
+            <div className="flex items-center justify-between">
+              <span className="text-gray-600 dark:text-gray-400">Friend Compatibility</span>
+              <span className="font-bold text-accent-primary">{match.score}%</span>
+            </div>
+            {sharedInterests.length > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600 dark:text-gray-400">Shared Interests</span>
+                <span className="font-semibold text-content-primary">{sharedInterests.length} in common</span>
+              </div>
+            )}
+            {match.profile.dna?.socialTempo === match.profile.dna?.socialTempo && (
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600 dark:text-gray-400">Social Preferences</span>
+                <span className="font-semibold text-green-600 dark:text-green-400">✓ Compatible</span>
+              </div>
+            )}
+            {match.profile.dna?.languages && match.profile.dna.languages.length > 0 && (
+              <div className="flex items-center justify-between">
+                <span className="text-gray-600 dark:text-gray-400">Languages</span>
+                <span className="font-semibold text-content-primary">{match.profile.dna.languages.join(', ').toUpperCase()}</span>
+              </div>
+            )}
+          </div>
+          <div className="mt-3 pt-3 border-t border-gray-200/30 dark:border-gray-700/30">
+            <p className="text-xs text-gray-600 dark:text-gray-400 italic">
+              💡 High compatibility for long-term friendship
+            </p>
+          </div>
+        </div>
+
+        {/* Connection Purpose Labels */}
+        <div className="mb-6">
+          <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2">
+            Perfect for
+          </h3>
+          <div className="flex flex-wrap gap-2">
+            {connectionPurposes.map((purpose, idx) => (
+              <span 
+                key={idx}
+                className="px-3 py-1.5 rounded-full text-sm font-medium bg-gradient-to-r from-green-100 to-emerald-100 dark:from-green-900/30 dark:to-emerald-900/30 text-green-700 dark:text-green-300 border border-green-200/50 dark:border-green-700/50"
+              >
+                {purpose}
+              </span>
+            ))}
+          </div>
+        </div>
+
         {/* Shared Interests */}
         {sharedInterests.length > 0 && (
-          <div className="mb-8">
+          <div className="mb-6">
             <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-2">
               Shared Interests ({sharedInterests.length})
             </h3>
@@ -247,7 +321,7 @@ export default function StoryCard({
         )}
 
         {/* Connection Preferences */}
-        <div className="grid grid-cols-2 gap-3 mb-8 text-sm">
+        <div className="grid grid-cols-2 gap-3 mb-6 text-sm">
           <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400">
             <Users className="w-4 h-4" />
             <span>{getSocialTempoDisplay(match.profile.dna?.socialTempo || '')}</span>
@@ -256,60 +330,121 @@ export default function StoryCard({
             <Calendar className="w-4 h-4" />
             <span>{getConnectionIntentDisplay(match.profile.dna?.connectionIntent || '')}</span>
           </div>
-          {match.profile.dna?.languages && match.profile.dna.languages.length > 0 && (
-            <div className="flex items-center space-x-2 text-gray-600 dark:text-gray-400 col-span-2">
-              <Globe className="w-4 h-4" />
-              <span>Speaks {match.profile.dna.languages.join(', ').toUpperCase()}</span>
-            </div>
-          )}
         </div>
+
+        {/* Intent Badge */}
+        <div className="mb-6 flex items-center justify-center">
+          <div className="inline-flex items-center space-x-2 px-4 py-2 liquid-glass rounded-full border border-green-200/50 dark:border-green-700/50">
+            <Zap className="w-4 h-4 text-green-600 dark:text-green-400" />
+            <span className="text-sm font-semibold text-green-700 dark:text-green-300">
+              🎯 Serious about making friends
+            </span>
+          </div>
+        </div>
+
+        {/* Personalized Conversation Starters */}
+        {icebreakers.length > 0 && (
+          <div className="mb-6">
+            <h3 className="text-sm font-semibold text-gray-600 dark:text-gray-400 mb-3">
+              💬 Conversation Starters
+            </h3>
+            <div className="space-y-2">
+              {icebreakers.map((icebreaker, idx) => {
+                const Icon = icebreaker.icon;
+                return (
+                  <button
+                    key={idx}
+                    onClick={() => {
+                      setCustomMessage(icebreaker.text);
+                      setShowDetails(true);
+                    }}
+                    className="w-full p-3 text-left text-sm flex items-center space-x-3 liquid-glass rounded-lg border border-gray-200/30 dark:border-gray-700/30 hover:border-accent-primary/50 transition-all hover:scale-[1.02]"
+                  >
+                    <Icon className="w-5 h-5 text-accent-primary flex-shrink-0" />
+                    <span className="text-content-primary">{icebreaker.text}</span>
+                  </button>
+                );
+              })}
+            </div>
+          </div>
+        )}
 
         {/* Message Option */}
-        <div className="mt-8">
-          <button
-            onClick={() => setShowDetails(!showDetails)}
-            className="w-full p-3 text-sm text-gray-600 dark:text-gray-400 hover:text-content-primary transition-colors border border-gray-200/30 dark:border-gray-700/30 rounded-lg liquid-glass"
-          >
-            {showDetails ? 'Hide message option' : 'Send a personalized message'}
-          </button>
-        </div>
+        {!showDetails && (
+          <div className="mt-6">
+            <button
+              onClick={() => setShowDetails(true)}
+              className="w-full p-4 text-sm font-medium text-content-primary hover:text-accent-primary transition-colors border-2 border-accent-primary/30 hover:border-accent-primary/60 rounded-lg liquid-glass flex items-center justify-center space-x-2"
+            >
+              <MessageCircle className="w-5 h-5" />
+              <span>Write a custom message</span>
+            </button>
+          </div>
+        )}
 
         {showDetails && (
-          <div className="mt-4 p-4 liquid-glass rounded-lg border border-gray-200/30 dark:border-gray-700/30">
+          <div className="mt-6 p-4 liquid-glass rounded-lg border-2 border-accent-primary/30">
+            <h4 className="text-sm font-semibold text-content-primary mb-3">Your Message</h4>
             <textarea
-              placeholder="Write a personalized message..."
-              className="w-full p-3 rounded-lg border border-gray-300/50 dark:border-gray-600/50 liquid-glass text-content-primary resize-none placeholder-gray-500 dark:placeholder-gray-400 mb-3"
-              rows={3}
+              value={customMessage}
+              onChange={(e) => setCustomMessage(e.target.value)}
+              placeholder={`Hey ${match.profile.displayName || match.profile.username}! I noticed we both love ${sharedInterests[0]?.tag.replace('#', '') || 'similar things'}...`}
+              className="w-full p-3 rounded-lg border border-gray-300/50 dark:border-gray-600/50 liquid-glass text-content-primary resize-none placeholder-gray-500 dark:placeholder-gray-400 mb-3 focus:border-accent-primary/50 focus:outline-none"
+              rows={4}
             />
-            <button
-              onClick={() => onConnect(match.profile.uid!, 'custom')}
-              disabled={false}
-              className="w-full py-3 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shadow-lg"
-            >
-              Send Connection Request
-            </button>
+            <div className="flex gap-2">
+              <button
+                onClick={() => {
+                  setShowDetails(false);
+                  setCustomMessage('');
+                }}
+                className="flex-1 py-3 border border-gray-300/50 dark:border-gray-600/50 text-gray-600 dark:text-gray-400 rounded-lg font-medium hover:bg-gray-100 dark:hover:bg-gray-800 transition-colors"
+              >
+                Cancel
+              </button>
+              <button
+                onClick={() => onConnect(match.profile.uid!, customMessage)}
+                disabled={isAnimating}
+                className="flex-2 py-3 px-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center space-x-2"
+              >
+                <UserPlus className="w-5 h-5" />
+                <span>Send Connection Request</span>
+              </button>
+            </div>
           </div>
         )}
 
       </div>
 
-      {/* Swipe Controls */}
-      <div className="flex justify-center items-center space-x-8 mt-8 mb-6">
-        <button
-          onClick={onSkip}
-          disabled={!canSwipe || isAnimating}
-          className="p-4 rounded-lg liquid-glass shadow-lg hover:shadow-xl transition-all hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed border border-red-200/30 dark:border-red-700/30"
-        >
-          <X className="w-8 h-8 text-red-500" />
-        </button>
+      {/* Action Controls - Prominent and Intentional */}
+      <div className="px-6 pb-6 pt-2">
+        <div className="grid grid-cols-2 gap-4">
+          <button
+            onClick={onSkip}
+            disabled={isAnimating}
+            className="py-4 rounded-xl liquid-glass shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed border-2 border-gray-200/50 dark:border-gray-700/50 hover:border-red-300/50 dark:hover:border-red-700/50 flex flex-col items-center justify-center space-y-2 group"
+          >
+            <X className="w-8 h-8 text-gray-500 dark:text-gray-400 group-hover:text-red-500 transition-colors" />
+            <span className="text-sm font-medium text-gray-600 dark:text-gray-400 group-hover:text-red-600 dark:group-hover:text-red-400">
+              Not Now
+            </span>
+          </button>
 
-        <button
-          onClick={onSwipeRight}
-          disabled={!canSwipe || isAnimating || showDetails}
-          className="p-5 rounded-lg bg-gradient-to-r from-purple-500 to-pink-500 shadow-lg hover:shadow-xl transition-all hover:scale-110 disabled:opacity-50 disabled:cursor-not-allowed border border-white/20"
-        >
-          <Heart className="w-10 h-10 text-white" />
-        </button>
+          <button
+            onClick={() => !showDetails ? onConnect(match.profile.uid!) : null}
+            disabled={isAnimating || showDetails}
+            className="py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] flex flex-col items-center justify-center space-y-2"
+          >
+            <UserPlus className="w-8 h-8 text-white" />
+            <span className="text-sm font-semibold text-white">
+              Connect
+            </span>
+          </button>
+        </div>
+        
+        <p className="text-center mt-4 text-xs text-gray-500 dark:text-gray-400">
+          Take your time - quality connections over quantity ✨
+        </p>
       </div>
     </div>
   );
