@@ -405,7 +405,7 @@ export default function StoryCard({
               <button
                 onClick={() => onConnect(match.profile.uid!, customMessage)}
                 disabled={isAnimating}
-                className="flex-2 py-3 px-6 bg-gradient-to-r from-purple-600 to-pink-600 text-white rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center space-x-2"
+                className="flex-2 py-3 px-6 bg-white dark:bg-gray-100 text-gray-900 dark:text-gray-800 rounded-lg font-semibold hover:opacity-90 transition-opacity disabled:opacity-50 disabled:cursor-not-allowed shadow-lg flex items-center justify-center space-x-2 border-2 border-gray-200/50 dark:border-gray-300/50"
               >
                 <UserPlus className="w-5 h-5" />
                 <span>Send Connection Request</span>
@@ -433,10 +433,10 @@ export default function StoryCard({
           <button
             onClick={() => !showDetails ? onConnect(match.profile.uid!) : null}
             disabled={isAnimating || showDetails}
-            className="py-4 rounded-xl bg-gradient-to-r from-purple-600 to-pink-600 shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] flex flex-col items-center justify-center space-y-2"
+            className="py-4 rounded-xl bg-white dark:bg-gray-100 shadow-md hover:shadow-lg transition-all disabled:opacity-50 disabled:cursor-not-allowed hover:scale-[1.02] flex flex-col items-center justify-center space-y-2 border-2 border-gray-200/50 dark:border-gray-300/50"
           >
-            <UserPlus className="w-8 h-8 text-white" />
-            <span className="text-sm font-semibold text-white">
+            <UserPlus className="w-8 h-8 text-gray-900 dark:text-gray-800" />
+            <span className="text-sm font-semibold text-gray-900 dark:text-gray-800">
               Connect
             </span>
           </button>
