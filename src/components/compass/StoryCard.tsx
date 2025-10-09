@@ -15,7 +15,11 @@ import {
   Music,
   Camera,
   X,
-  UserPlus
+  UserPlus,
+  Palette,
+  Compass,
+  ClipboardList,
+  Star
 } from 'lucide-react';
 import PhotoCarousel from './PhotoCarousel';
 
@@ -52,15 +56,15 @@ export default function StoryCard({
   const getArchetypeStyle = (archetype: string) => {
     switch (archetype) {
       case 'creator':
-        return { color: 'from-purple-500 to-pink-500', icon: '🎨' };
+        return { color: 'from-gray-600 to-gray-700', icon: Palette };
       case 'explorer':
-        return { color: 'from-blue-500 to-cyan-500', icon: '🧭' };
+        return { color: 'from-gray-600 to-gray-700', icon: Compass };
       case 'organizer':
-        return { color: 'from-orange-500 to-red-500', icon: '📋' };
+        return { color: 'from-gray-600 to-gray-700', icon: ClipboardList };
       case 'participant':
-        return { color: 'from-green-500 to-emerald-500', icon: '🎭' };
+        return { color: 'from-gray-600 to-gray-700', icon: Star };
       default:
-        return { color: 'from-gray-500 to-gray-600', icon: '👤' };
+        return { color: 'from-gray-500 to-gray-600', icon: Users };
     }
   };
 
@@ -182,7 +186,7 @@ export default function StoryCard({
         <div className="absolute top-4 left-4 z-10">
           <div className={`bg-gradient-to-r ${archetypeStyle.color} text-white rounded-full px-4 py-2 shadow-lg border border-white/20`}>
             <div className="flex items-center space-x-2">
-              <span className="text-xl">{archetypeStyle.icon}</span>
+              {React.createElement(archetypeStyle.icon, { className: "w-5 h-5" })}
               <span className="font-semibold capitalize">{match.profile.dna?.archetype}</span>
             </div>
           </div>
@@ -305,15 +309,14 @@ export default function StoryCard({
                   className={`
                     px-3 py-1 rounded-full text-sm font-medium
                     ${interest.passion === 'pro' 
-                      ? 'bg-gradient-to-r from-purple-500 to-pink-500 text-white' 
+                      ? 'bg-gradient-to-r from-gray-600 to-gray-700 text-white' 
                       : interest.passion === 'passionate'
-                      ? 'bg-purple-100 dark:bg-purple-900/30 text-purple-700 dark:text-purple-300'
-                      : 'bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300'
+                      ? 'bg-gray-200 dark:bg-gray-700 text-gray-800 dark:text-gray-300'
+                      : 'bg-gray-100 dark:bg-gray-800 text-gray-700 dark:text-gray-400'
                     }
                   `}
                 >
                   {interest.tag.replace('#', '')}
-                  {interest.type === 'in-person' && ' 🤝'}
                 </span>
               ))}
             </div>
