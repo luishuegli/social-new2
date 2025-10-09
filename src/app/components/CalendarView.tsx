@@ -5,7 +5,7 @@ import { Calendar, momentLocalizer, Event } from 'react-big-calendar';
 import moment from 'moment';
 import 'react-big-calendar/lib/css/react-big-calendar.css';
 import './Calendar.css';
-import { Plus, Zap } from 'lucide-react';
+import { Plus, Zap, ChevronLeft, ChevronRight } from 'lucide-react';
 import SoloActivityModal from './SoloActivityModal';
 import { useAuth } from '@/app/contexts/AuthContext';
 
@@ -27,14 +27,29 @@ export default function CalendarView({ activities, onActivityCreated }: Calendar
   const { user } = useAuth();
   const [isCreateModalOpen, setIsCreateModalOpen] = useState(false);
   const [selectedActivity, setSelectedActivity] = useState<Activity | null>(null);
+  const [currentDate, setCurrentDate] = useState(new Date());
 
-  const events: Event[] = activities.map(activity => ({
-    title: activity.title,
-    start: new Date(activity.date),
-    end: new Date(activity.date), // Assuming activities are single-day events
-    allDay: true,
-    resource: activity,
-  }));
+  // Map activities to calendar events
+  const events: Event[] = activities.map(activity => {
+    const eventDate = new Date(activity.date);
+    console.log('Mapping activity to event:', {
+      title: activity.title,
+      date: activity.date,
+      parsedDate: eventDate,
+      isValid: !isNaN(eventDate.getTime())
+    });
+    
+    return {
+      title: activity.title,
+      start: eventDate,
+      end: eventDate,
+      allDay: true,
+      resource: activity,
+    };
+  });
+
+  console.log('CalendarView - Activities count:', activities.length);
+  console.log('CalendarView - Events count:', events.length);
 
   const handleCreateSoloActivity = async (activityData: Omit<Activity, 'id'>) => {
     if (!user) {
@@ -77,18 +92,77 @@ export default function CalendarView({ activities, onActivityCreated }: Calendar
     setSelectedActivity(null);
   };
 
+  const handlePreviousMonth = () => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() - 1);
+    setCurrentDate(newDate);
+  };
+
+  const handleNextMonth = () => {
+    const newDate = new Date(currentDate);
+    newDate.setMonth(newDate.getMonth() + 1);
+    setCurrentDate(newDate);
+  };
+
+  const handleToday = () => {
+    setCurrentDate(new Date());
+  };
+
+  const getCurrentMonthYear = () => {
+    return currentDate.toLocaleDateString('en-US', { month: 'long', year: 'numeric' });
+  };
+
   return (
     <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
       {/* Calendar */}
       <div className="lg:col-span-2 liquid-glass p-6">
-        <div style={{ height: '700px' }}>
+        {/* Debug info */}
+        {process.env.NODE_ENV === 'development' && (
+          <div className="mb-4 p-2 bg-blue-900/20 rounded text-xs text-blue-400">
+            Calendar Debug: {activities.length} activities | {events.length} events
+          </div>
+        )}
+        
+        {/* Custom Navigation Header */}
+        <div className="flex items-center justify-between mb-6">
+          <button
+            onClick={handlePreviousMonth}
+            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/10"
+            aria-label="Previous month"
+          >
+            <ChevronLeft className="w-5 h-5 text-white" />
+          </button>
+          
+          <button
+            onClick={handleToday}
+            className="text-xl font-semibold text-white hover:text-white/80 transition-colors cursor-pointer"
+            title="Click to return to current month"
+          >
+            {getCurrentMonthYear()}
+          </button>
+          
+          <button
+            onClick={handleNextMonth}
+            className="p-2 rounded-lg bg-white/5 hover:bg-white/10 transition-colors border border-white/10"
+            aria-label="Next month"
+          >
+            <ChevronRight className="w-5 h-5 text-white" />
+          </button>
+        </div>
+        
+        <div style={{ height: '650px', minHeight: '650px' }}>
           <Calendar
             localizer={localizer}
             events={events}
+            date={currentDate}
+            onNavigate={(newDate) => setCurrentDate(newDate)}
             onSelectEvent={handleSelectEvent}
             startAccessor="start"
             endAccessor="end"
             style={{ height: '100%' }}
+            views={['month']}
+            view="month"
+            toolbar={false}
           />
         </div>
       </div>
