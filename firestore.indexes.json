@@ -86,6 +86,31 @@
         { "fieldPath": "targetUserId", "order": "ASCENDING" },
         { "fieldPath": "timestamp", "order": "DESCENDING" }
       ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "compass.discoverable", "order": "ASCENDING" },
+        { "fieldPath": "dna.coreInterests", "arrayConfig": "CONTAINS" },
+        { "fieldPath": "compass.lastActiveTimestamp", "order": "DESCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "compass.discoverable", "order": "ASCENDING" },
+        { "fieldPath": "uid", "order": "ASCENDING" }
+      ]
+    },
+    {
+      "collectionGroup": "users",
+      "queryScope": "COLLECTION",
+      "fields": [
+        { "fieldPath": "compass.lastActiveTimestamp", "order": "DESCENDING" },
+        { "fieldPath": "compass.discoverable", "order": "ASCENDING" }
+      ]
     }
   ],
   "fieldOverrides": []

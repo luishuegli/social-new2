@@ -1,5 +1,5 @@
 import { NextResponse } from 'next/server';
-import { adminDb } from '../../Lib/firebaseAdmin';
+import { adminDb } from '@/app/Lib/firebaseAdmin';
 import { generateRealisticActivity } from '../../../lib/activityGenerator.js';
 
 export async function POST() {

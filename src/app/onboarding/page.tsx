@@ -6,6 +6,8 @@ import { db, auth } from '../Lib/firebase';
 import { doc, runTransaction, serverTimestamp, setDoc, getDoc } from 'firebase/firestore';
 import { updatePassword } from 'firebase/auth';
 import { useRouter } from 'next/navigation';
+import CompassOnboarding from './CompassOnboarding';
+import AppLayout from '../components/AppLayout';
 
 export default function OnboardingPage() {
   const { user } = useAuth();
@@ -17,13 +19,25 @@ export default function OnboardingPage() {
   const [loading, setLoading] = useState(false);
   const [checking, setChecking] = useState(false);
   const [available, setAvailable] = useState<boolean | null>(null);
+  const [step, setStep] = useState<'username' | 'compass'>('username');
+  const [profileExists, setProfileExists] = useState(false);
 
   useEffect(() => {
     if (!user) return;
-    // If profile already exists, skip onboarding
+    // Check if profile already exists and its state
     (async () => {
       const snap = await getDoc(doc(db, 'users', user.uid));
-      if (snap.exists()) router.replace('/');
+      if (snap.exists()) {
+        setProfileExists(true);
+        const data = snap.data();
+        // If they have a username but no DNA, show Compass onboarding
+        if (!data.dna || !data.dna.archetype) {
+          setStep('compass');
+        } else {
+          // Full onboarding complete, redirect
+          router.replace('/compass');
+        }
+      }
     })();
   }, [user, router]);
 
@@ -58,7 +72,8 @@ export default function OnboardingPage() {
       if (password && auth.currentUser) {
         await updatePassword(auth.currentUser, password);
       }
-      router.replace('/');
+      // Move to Compass onboarding after username setup
+      setStep('compass');
     } catch (err: any) {
       setError(err?.message || 'Failed to complete onboarding');
     } finally {
@@ -89,12 +104,25 @@ export default function OnboardingPage() {
 
   if (!user) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-content-secondary">Sign in to continue…</div>
+      <AppLayout>
+        <div className="min-h-screen flex items-center justify-center text-content-secondary">Sign in to continue…</div>
+      </AppLayout>
     );
   }
 
+  // Show Compass onboarding if we're on that step
+  if (step === 'compass') {
+    return (
+      <AppLayout>
+        <CompassOnboarding />
+      </AppLayout>
+    );
+  }
+
+  // Show username setup for new users
   return (
-    <div className="min-h-screen flex items-center justify-center py-12 px-page-padding bg-background-primary">
+    <AppLayout>
+      <div className="min-h-screen flex items-center justify-center py-12 px-page-padding relative z-10">
       <form onSubmit={handleSubmit} className="w-full max-w-md liquid-glass p-6 rounded-2xl">
         <h1 className="text-heading-2 text-content-primary font-bold mb-4">Finish setup</h1>
         <p className="text-content-secondary mb-6">Choose a unique username and set a password for email login.</p>
@@ -135,10 +163,11 @@ export default function OnboardingPage() {
         {error && <div className="mb-4 text-red-400 text-sm">{error}</div>}
 
         <button disabled={loading} className="w-full py-3 rounded-lg liquid-glass text-content-primary font-semibold disabled:opacity-50">
-          {loading ? 'Saving…' : 'Complete setup'}
+          {loading ? 'Saving…' : 'Continue to Compass Setup'}
         </button>
       </form>
-    </div>
+      </div>
+    </AppLayout>
   );
 }
 

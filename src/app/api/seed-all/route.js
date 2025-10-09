@@ -1,7 +1,7 @@
 // src/app/api/seed-all/route.js
 import { NextResponse } from 'next/server';
 // Use Admin SDK so seeding bypasses client security rules
-import { adminDb, FieldValue } from '../../Lib/firebaseAdmin';
+import { adminDb, FieldValue } from '@/app/Lib/firebaseAdmin';
 
 // ---------- Generators ----------
 const FIRST = ['Ava','Liam','Noah','Emma','Olivia','Sophia','Isabella','Mia','Charlotte','Amelia','Ethan','Mason','Logan','Lucas','Jackson','Aiden','James','Benjamin','Elijah','Jacob','Harper','Evelyn','Abigail','Emily','Elizabeth','Sofia','Avery','Ella','Scarlett','Grace','Muhammad','Fatima','Aisha','Yusuf','Zainab','Omar','Layla','Ali','Sara','Hassan','Hiro','Yuki','Sora','Akira','Mei','Kenji','Rina','Daichi','Hana','Kaito'];

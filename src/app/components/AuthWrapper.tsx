@@ -24,8 +24,9 @@ export default function AuthWrapper() {
       if (!mounted) return;
       if (!user) return;
       try {
-        const snap = await getDoc(doc(db, 'users', user.uid));
-        router.replace(snap.exists() ? '/home' : '/onboarding');
+        const { getUserProfile } = await import('../services/dataService');
+        const userProfile = await getUserProfile(user.uid);
+        router.replace(userProfile ? '/home' : '/onboarding');
       } catch {
         router.replace('/home');
       }

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { adminDb } from '../../Lib/firebaseAdmin';
+import { adminDb } from '@/app/Lib/firebaseAdmin';
 import { handleAPIError, APIError } from '../../utils/errorHandler';
 
 export async function GET(request: NextRequest) {

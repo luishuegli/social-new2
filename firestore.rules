@@ -211,5 +211,27 @@ service cloud.firestore {
       allow create: if isAuthenticated() && request.auth.uid in request.resource.data.members;
       allow update, delete: if isAuthenticated() && request.auth.uid in resource.data.members;
     }
+    
+    // Compass - Swipe logs are write-only from authenticated users
+    match /swipe_log/{document} {
+      allow read: if false; // Never allow client reads
+      allow create: if false; // Only through API
+      allow update, delete: if false;
+    }
+    
+    // Compass - Interests are readable by all authenticated users
+    match /interests/{document} {
+      allow read: if isAuthenticated();
+      allow write: if false; // Admin only via API
+    }
+    
+    // Compass - Metrics and errors (admin only)
+    match /compass_metrics/{document} {
+      allow read, write: if false;
+    }
+    
+    match /compass_errors/{document} {
+      allow read, write: if false;
+    }
   }
 }

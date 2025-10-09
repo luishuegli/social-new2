@@ -1,6 +1,6 @@
 // src/app/api/addUserToAllGroups/route.js
 import { NextResponse } from 'next/server';
-import { adminDb, FieldValue } from '../../Lib/firebaseAdmin';
+import { adminDb, FieldValue } from '@/app/Lib/firebaseAdmin';
 
 // IMPORTANT: This is a development utility only. Do not ship to production as-is.
 

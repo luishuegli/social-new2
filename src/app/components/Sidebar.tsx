@@ -16,7 +16,8 @@ import {
   Calendar,
   MoreHorizontal,
   Palette,
-  Cog
+  Cog,
+  Compass
 } from 'lucide-react';
 import { useEffect, useLayoutEffect, useRef, useState } from 'react';
 import { useRouter } from 'next/navigation';
@@ -166,7 +167,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
   const navigationItems = [
     { icon: Home, label: 'Home', href: '/' },
-    { icon: MessageCircle, label: 'Action Center', href: '/action-center', badge: unread.totalUnread || undefined },
+    { icon: Compass, label: 'Connect', href: '/compass' },
     { icon: Users, label: 'Groups', href: '/groups', badge: unread.groupsWithUnread || undefined },
     { icon: Calendar, label: 'Activities', href: '/activities' },
   ];
@@ -214,7 +215,7 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           </div>
 
           {/* Navigation */}
-          <nav className="flex-1 space-y-2 sm:space-y-3 min-w-0">
+          <nav className="flex-1 space-y-3 sm:space-y-4 min-w-0">
             {navigationItems.map((item) => {
               const Icon = item.icon;
               const isActive = pathname === item.href;
@@ -223,19 +224,19 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   key={item.label}
                   href={item.href}
                   className={`
-                    flex items-center justify-between px-3 sm:px-4 py-3 sm:py-4 text-body font-semibold rounded-lg transition-all duration-200
+                    flex items-center justify-between px-4 sm:px-5 py-4 sm:py-5 text-lg font-semibold rounded-lg transition-all duration-200
                     ${isActive 
                       ? 'liquid-glass text-content-primary' 
                       : 'text-content-secondary hover:bg-background-secondary'
                     }
                   `}
                 >
-                  <div className="flex items-center space-x-3 sm:space-x-4 min-w-0 flex-1">
-                    <Icon className="w-5 h-5 flex-shrink-0" strokeWidth={2} />
+                  <div className="flex items-center space-x-4 sm:space-x-5 min-w-0 flex-1">
+                    <Icon className="w-6 h-6 flex-shrink-0" strokeWidth={2} />
                     <span className="truncate">{item.label}</span>
                   </div>
                   {item.badge && (
-                    <div className="liquid-glass-round text-content-primary text-xs font-bold w-6 h-6 flex items-center justify-center flex-shrink-0">
+                    <div className="liquid-glass-round text-content-primary text-sm font-bold w-7 h-7 flex items-center justify-center flex-shrink-0">
                       {item.badge}
                     </div>
                   )}
@@ -247,18 +248,18 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* Quick Actions */}
           <div className="mt-6 sm:mt-8 flex-shrink-0">
             <Link href={canPost ? '/posts/live/create' : '/posts/create'} className="block">
-              <div className={`w-full flex items-center justify-center space-x-3 liquid-glass text-content-primary px-4 sm:px-6 py-3 sm:py-4 font-semibold rounded-lg transition-all duration-200 hover:bg-opacity-80 ${canPost ? 'border-2 border-green-500' : ''}`} style={canPost ? {
+              <div className={`w-full flex items-center justify-center space-x-4 liquid-glass text-content-primary px-5 sm:px-7 py-4 sm:py-5 text-lg font-semibold rounded-lg transition-all duration-200 hover:bg-opacity-80 ${canPost ? 'border-2 border-green-500' : ''}`} style={canPost ? {
                 animation: 'pulse-border 2s infinite',
                 boxShadow: '0 0 0 0 rgba(34, 197, 94, 0.7)'
               } : {}}>
                 {canPost ? (
                   <>
-                    <span className="text-body truncate">Live Post</span>
+                    <span className="truncate">Live Post</span>
                   </>
                 ) : (
                   <>
-                    <Plus className="w-5 h-5 flex-shrink-0" strokeWidth={2} />
-                    <span className="text-body truncate">New Post</span>
+                    <Plus className="w-6 h-6 flex-shrink-0" strokeWidth={2} />
+                    <span className="truncate">New Post</span>
                   </>
                 )}
               </div>
@@ -268,9 +269,9 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
           {/* User Info */}
           {user && (
             <Link href={`/profile/${user.uid}`} className="block">
-              <div className="liquid-glass p-4 sm:p-6 mt-4 sm:mt-6 flex-shrink-0">
+              <div className="liquid-glass p-5 sm:p-7 mt-4 sm:mt-6 flex-shrink-0">
                 <div className="flex items-center justify-center min-w-0">
-                  <div className="w-12 h-12 bg-accent-primary flex items-center justify-center rounded-full flex-shrink-0 mr-3 overflow-hidden">
+                  <div className="w-14 h-14 bg-accent-primary flex items-center justify-center rounded-full flex-shrink-0 mr-4 overflow-hidden">
                     {user?.profilePictureUrl ? (
                       <img
                         src={user.profilePictureUrl}
@@ -285,13 +286,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                         }}
                       />
                     ) : (
-                      <span className="text-content-primary font-semibold text-body">
+                      <span className="text-content-primary font-semibold text-lg">
                         {(user?.displayName || user?.email || 'U').charAt(0).toUpperCase()}
                       </span>
                     )}
                   </div>
                   <div className="min-w-0 text-center">
-                    <p className="text-body font-semibold text-content-primary truncate">
+                    <p className="text-lg font-semibold text-content-primary truncate">
                       {user?.displayName || 'User'}
                     </p>
                   </div>
@@ -300,19 +301,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
             </Link>
           )}
 
-          {/* Logout */}
-          <div className="mt-4 sm:mt-6 flex-shrink-0">
-            <button
-              onClick={handleLogout}
-              className="w-full flex items-center space-x-3 sm:space-x-4 px-3 sm:px-4 py-3 sm:py-4 text-body font-semibold text-content-secondary rounded-lg transition-all duration-200 hover:bg-background-secondary"
-            >
-              <LogOut className="w-5 h-5 flex-shrink-0" strokeWidth={2} />
-              <span className="truncate">Logout</span>
-            </button>
-          </div>
-
           {/* More / Settings */}
-          <div className="mt-3 sm:mt-4 flex-shrink-0">
+          <div className="mt-4 sm:mt-6 flex-shrink-0">
             <button
               ref={moreBtnRef}
               onClick={(e) => {
@@ -326,10 +316,27 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                   openSettings();
                 }
               }}
-              className="w-full flex items-center space-x-3 sm:space-x-4 px-3 sm:px-4 py-3 sm:py-4 text-body font-semibold text-content-secondary rounded-lg transition-all duration-200 hover:bg-background-secondary"
+              className={`
+                w-full flex items-center space-x-4 sm:space-x-5 px-4 sm:px-5 py-4 sm:py-5 text-lg font-semibold rounded-lg transition-all duration-200
+                ${showSettings 
+                  ? 'liquid-glass text-content-primary' 
+                  : 'text-content-secondary hover:bg-background-secondary'
+                }
+              `}
             >
-              <MoreHorizontal className="w-5 h-5 flex-shrink-0" strokeWidth={2} />
+              <MoreHorizontal className="w-6 h-6 flex-shrink-0" strokeWidth={2} />
               <span className="truncate">More</span>
+            </button>
+          </div>
+
+          {/* Logout */}
+          <div className="mt-3 sm:mt-4 flex-shrink-0">
+            <button
+              onClick={handleLogout}
+              className="w-full flex items-center space-x-4 sm:space-x-5 px-4 sm:px-5 py-4 sm:py-5 text-lg font-semibold text-content-secondary rounded-lg transition-all duration-200 hover:bg-background-secondary"
+            >
+              <LogOut className="w-6 h-6 flex-shrink-0" strokeWidth={2} />
+              <span className="truncate">Logout</span>
             </button>
           </div>
 
@@ -355,26 +362,26 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                 )}
 
                 {settingsView === 'root' && (
-                  <div className="grid grid-cols-1 gap-2">
+                  <div className="grid grid-cols-1 gap-3">
                     <button
                       onMouseDown={() => {
                         setShowSettings(false);
                         router.push('/settings');
                       }}
-                      className="flex items-center justify-between px-1 py-2 rounded-lg transition-colors text-content-primary font-semibold hover:bg-background-secondary"
+                      className="flex items-center justify-between px-3 py-4 rounded-lg transition-colors text-content-primary font-semibold hover:bg-background-secondary"
                     >
-                      <span className="flex items-center space-x-2">
-                        <Cog className="w-4 h-4" />
-                        <span className="truncate">Settings</span>
+                      <span className="flex items-center space-x-3">
+                        <Cog className="w-5 h-5" />
+                        <span className="truncate text-lg">Settings</span>
                       </span>
                     </button>
                     <button
                       onMouseDown={() => setSettingsView('theme')}
-                      className="flex items-center justify-between px-1 py-2 rounded-lg transition-colors text-content-primary font-semibold hover:bg-background-secondary"
+                      className="flex items-center justify-between px-3 py-4 rounded-lg transition-colors text-content-primary font-semibold hover:bg-background-secondary"
                     >
-                      <span className="flex items-center space-x-2">
-                        <Palette className="w-4 h-4" />
-                        <span className="truncate">Change theme</span>
+                      <span className="flex items-center space-x-3">
+                        <Palette className="w-5 h-5" />
+                        <span className="truncate text-lg">Change theme</span>
                       </span>
                     </button>
                   </div>
@@ -382,8 +389,8 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
 
                 {settingsView === 'theme' && (
                   <>
-                    <div className="mb-2 text-caption text-content-secondary">Choose a theme</div>
-                    <div className="grid grid-cols-1 gap-2">
+                    <div className="mb-3 text-lg text-content-secondary">Choose a theme</div>
+                    <div className="grid grid-cols-1 gap-3">
                       {[
                         { label: 'Default', value: '' },
                         { label: 'Gray Haze', value: 'mesh-theme-gray-haze' },
@@ -398,13 +405,13 @@ export default function Sidebar({ isOpen, onClose }: SidebarProps) {
                             setTheme(opt.value);
                             applyTheme(opt.value);
                           }}
-                          className={`flex items-center justify-between px-3 py-2 rounded-lg transition-colors ${
+                          className={`flex items-center justify-between px-4 py-3 rounded-lg transition-colors ${
                             theme === opt.value ? 'liquid-glass text-content-primary' : 'text-content-secondary hover:bg-background-secondary'
                           }`}
                         >
-                          <span className="flex items-center space-x-2">
-                            <Palette className="w-4 h-4" />
-                            <span className="truncate">{opt.label}</span>
+                          <span className="flex items-center space-x-3">
+                            <Palette className="w-5 h-5" />
+                            <span className="truncate text-lg">{opt.label}</span>
                           </span>
                         </button>
                       ))}

@@ -1,6 +1,6 @@
 // src/app/api/seed-min/route.js
 import { NextResponse } from 'next/server';
-import { adminDb, FieldValue } from '../../Lib/firebaseAdmin';
+import { adminDb, FieldValue } from '@/app/Lib/firebaseAdmin';
 
 function rand(n) { return Math.floor(Math.random() * n); }
 

@@ -1,40 +1,39 @@
 'use client';
 
-import { useEffect, useState } from 'react';
-import { db } from '../Lib/firebase';
-import { collection, query, where, onSnapshot } from 'firebase/firestore';
-import { Group } from '../types';
+import { useState, useEffect } from 'react';
+import { useAuth } from '../contexts/AuthContext';
+import { Group } from '../types/firestoreSchema';
+import { getUserGroups } from '../services/dataService';
 
 export function useUserGroups(userId?: string) {
   const [groups, setGroups] = useState<Group[]>([]);
+  const [loading, setLoading] = useState(true);
+  const { user } = useAuth();
+  const targetUserId = userId || user?.uid;
 
   useEffect(() => {
-    if (!userId) {
+    if (!targetUserId) {
       setGroups([]);
+      setLoading(false);
       return;
     }
 
-    const groupsRef = collection(db, 'groups');
-    const q = query(groupsRef, where('members', 'array-contains', userId));
-    const unsub = onSnapshot(q, (snap) => {
-      const items: Group[] = [];
-      snap.forEach((d) => {
-        const data: any = d.data();
-        items.push({
-          id: d.id,
-          name: data.groupName || 'Unknown Group',
-          description: data.description || '',
-          memberCount: data.members?.length || 0,
-          members: [],
-          coverImage: data.profilePictureUrl,
-          isPinned: !!data.isPinned,
-        });
-      });
-      setGroups(items);
-    });
-    return () => unsub();
-  }, [userId]);
+    setLoading(true);
 
-  return { groups };
+    const fetchGroups = async () => {
+      try {
+        const userGroups = await getUserGroups(targetUserId);
+        setGroups(userGroups);
+      } catch (err) {
+        // Handle error
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchGroups();
+  }, [targetUserId]);
+
+  return { groups, loading };
 }
 

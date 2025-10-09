@@ -28,7 +28,7 @@ export default function AppLayout({ children }: AppLayoutProps) {
       </div>
       
       {/* Main Content */}
-      <div className="flex-1 flex flex-col lg:ml-64 min-w-0 relative z-0 h-screen overflow-hidden">
+      <div className="flex-1 flex flex-col lg:ml-64 min-w-0 relative z-10 h-screen overflow-hidden">
         {/* Top Bar */}
         <header className="liquid-glass border-b border-border-separator lg:hidden flex-shrink-0 relative z-10">
           <div className="flex items-center justify-between px-4 sm:px-6 py-3 sm:py-4">

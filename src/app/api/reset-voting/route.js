@@ -1,5 +1,5 @@
 // src/app/api/reset-voting/route.js
-import { adminDb } from '../../Lib/firebaseAdmin';
+import { adminDb } from '@/app/Lib/firebaseAdmin';
 
 export async function GET() {
   try {

@@ -1,6 +1,6 @@
 // src/app/api/seed-users/route.js
 import { NextResponse } from 'next/server';
-import { adminDb, FieldValue } from '../../Lib/firebaseAdmin';
+import { adminDb, FieldValue } from '@/app/Lib/firebaseAdmin';
 
 // Deterministic pools for diverse dummy data
 const FIRST_NAMES = [
