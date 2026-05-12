@@ -17,7 +17,7 @@ export async function POST(req: NextRequest) {
     const userId = decodedToken.uid;
 
     // Parse request body
-    const { targetId, action } = await req.json();
+    const { targetId, action, message } = await req.json();
     
     // Validate parameters
     if (!targetId || !action) {
@@ -51,7 +51,7 @@ export async function POST(req: NextRequest) {
       'compass.lastActiveTimestamp': FieldValue.serverTimestamp(),
     });
 
-    // 3. If it's a connect action, handle connection tokens
+    // 3. If it's a connect action, handle connection tokens and create connection request
     if (action === 'connect') {
       // Decrement connection tokens
       const userDoc = await userRef.get();
@@ -69,12 +69,74 @@ export async function POST(req: NextRequest) {
         }, { status: 403 });
       }
 
-      // Optional: Create a pending connection request (if you have this system)
-      // This would integrate with your existing connection system
-      const targetRef = adminDb.collection('users').doc(targetId);
-      batch.update(targetRef, {
-        'pendingRequests': FieldValue.arrayUnion(userId),
-      });
+      // Check if connection request already exists
+      const existingConnectionQuery = await adminDb
+        .collection('connections')
+        .where('from', '==', userId)
+        .where('to', '==', targetId)
+        .limit(1)
+        .get();
+
+      const existingConnection = !existingConnectionQuery.empty ? existingConnectionQuery.docs[0] : null;
+
+      // Check if there's a reverse connection (mutual match scenario)
+      const reverseConnectionQuery = await adminDb
+        .collection('connections')
+        .where('from', '==', targetId)
+        .where('to', '==', userId)
+        .where('status', '==', 'pending')
+        .limit(1)
+        .get();
+
+      const reverseConnection = !reverseConnectionQuery.empty ? reverseConnectionQuery.docs[0] : null;
+
+      if (reverseConnection) {
+        // Mutual match! Auto-accept the connection
+        batch.update(reverseConnection.ref, {
+          status: 'accepted',
+          acceptedAt: FieldValue.serverTimestamp(),
+        });
+
+        // Create bidirectional connection
+        const newConnectionRef = adminDb.collection('connections').doc();
+        batch.set(newConnectionRef, {
+          from: userId,
+          to: targetId,
+          status: 'accepted',
+          message: message || null,
+          createdAt: FieldValue.serverTimestamp(),
+          acceptedAt: FieldValue.serverTimestamp(),
+        });
+
+        // Update both users' connections arrays
+        batch.update(userRef, {
+          connections: FieldValue.arrayUnion(targetId),
+          pendingRequests: FieldValue.arrayRemove(targetId),
+        });
+
+        const targetRef = adminDb.collection('users').doc(targetId);
+        batch.update(targetRef, {
+          connections: FieldValue.arrayUnion(userId),
+          pendingRequests: FieldValue.arrayRemove(userId),
+        });
+      } else if (!existingConnection) {
+        // Create new connection request
+        const connectionRef = adminDb.collection('connections').doc();
+        batch.set(connectionRef, {
+          from: userId,
+          to: targetId,
+          status: 'pending',
+          message: message || null,
+          createdAt: FieldValue.serverTimestamp(),
+          updatedAt: FieldValue.serverTimestamp(),
+        });
+
+        // Add to target user's pending requests
+        const targetRef = adminDb.collection('users').doc(targetId);
+        batch.update(targetRef, {
+          'pendingRequests': FieldValue.arrayUnion(userId),
+        });
+      }
     }
 
     // Commit the batch

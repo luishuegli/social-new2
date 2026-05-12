@@ -32,12 +32,12 @@ export default function PostDetailModal({ post, isOpen, onClose }: PostDetailMod
   const [isSubmittingComment, setIsSubmittingComment] = useState(false);
   
   const { likeState, toggleLike } = useInstagramLike(
-    post?.id, 
+    post?.id || '', 
     post?.likes || 0, 
     post?.isLiked || false
   );
 
-  const { commentState, addComment } = useInstagramComments(post?.id);
+  const { commentState, addComment } = useInstagramComments(post?.id || '');
 
   const handleLike = async () => {
     try {

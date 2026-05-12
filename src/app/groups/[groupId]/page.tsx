@@ -101,27 +101,39 @@ export default function GroupPage({ params }: GroupPageProps) {
               className="mb-6"
             >
               <div className="liquid-glass p-4">
-                <div className="flex bg-background-secondary/50 backdrop-blur-sm rounded-lg p-1">
-                  <button
-                    onClick={() => setActiveView('chat')}
-                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
-                      activeView === 'chat'
-                        ? 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm'
-                        : 'text-content-secondary hover:text-content-primary hover:bg-background-secondary'
-                    }`}
-                  >
-                    Chat
-                  </button>
-                  <button
-                    onClick={() => setActiveView('posts')}
-                    className={`flex-1 py-2 px-4 rounded-md text-sm font-medium transition-all duration-200 ${
-                      activeView === 'posts'
-                        ? 'bg-white/10 text-white hover:bg-white/20 backdrop-blur-sm'
-                        : 'text-content-secondary hover:text-content-primary hover:bg-background-secondary'
-                    }`}
-                  >
-                    Posts
-                  </button>
+                <div className="flex justify-center">
+                  <div className="flex space-x-2 bg-white/10 backdrop-blur-sm rounded-lg border border-white/10 p-1.5 w-full max-w-md">
+                    <button
+                      onClick={() => setActiveView('chat')}
+                      className={`
+                        flex-1 px-8 py-4 rounded-lg text-body font-semibold transition-all duration-200
+                        focus:outline-none focus:ring-0 focus:border-0 focus:shadow-none
+                        active:outline-none active:ring-0 active:border-0 active:shadow-none
+                        ${activeView === 'chat'
+                          ? 'bg-white/20 text-white backdrop-blur-sm'
+                          : 'text-white/70 hover:text-white hover:bg-white/5 transition-all duration-200'
+                        }
+                      `}
+                      style={{ outline: 'none' }}
+                    >
+                      Chat
+                    </button>
+                    <button
+                      onClick={() => setActiveView('posts')}
+                      className={`
+                        flex-1 px-8 py-4 rounded-lg text-body font-semibold transition-all duration-200
+                        focus:outline-none focus:ring-0 focus:border-0 focus:shadow-none
+                        active:outline-none active:ring-0 active:border-0 active:shadow-none
+                        ${activeView === 'posts'
+                          ? 'bg-white/20 text-white backdrop-blur-sm'
+                          : 'text-white/70 hover:text-white hover:bg-white/5 transition-all duration-200'
+                        }
+                      `}
+                      style={{ outline: 'none' }}
+                    >
+                      Posts
+                    </button>
+                  </div>
                 </div>
               </div>
             </motion.div>

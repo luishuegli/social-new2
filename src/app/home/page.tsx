@@ -1,38 +1,15 @@
 'use client';
 
-import React, { useEffect, useState } from 'react';
-import { motion, Variants } from 'framer-motion';
+import { motion } from 'framer-motion';
 import AppLayout from '../components/AppLayout';
-import PostCard from '../../components/PostCard';
-import CollaborativePostCard from '../../components/CollaborativePostCard';
 import InstagramPostCard from '../../components/ui/InstagramPostCard';
-import { usePosts } from '../hooks/usePosts';
-
-// Animation variants for staggered list animations
-const containerVariants: Variants = {
-  hidden: { opacity: 0 },
-  visible: {
-    opacity: 1,
-    transition: {
-      staggerChildren: 0.1, // Each child animates 0.1s after the previous one
-    },
-  },
-};
-
-const itemVariants: Variants = {
-  hidden: { y: 20, opacity: 0 },
-  visible: {
-    y: 0,
-    opacity: 1,
-    transition: { type: 'spring', stiffness: 300, damping: 24 }
-  },
-};
+import { usePaginatedPosts } from '@/hooks/usePaginatedPosts';
+import { listContainerVariants, listItemVariants, fadeInVariants, slideDownVariants, scaleInVariants } from '../constants/animations';
 
 export default function HomePage() {
-  const { posts, loading, error, handleLike, handleComment } = usePosts();
-
-  // Remove dependency on deleted debug endpoint
-  // Posts are now handled entirely by the usePosts hook
+  const { posts, loading, hasMore, error, loadMore, triggerRef } = usePaginatedPosts({
+    enableInfiniteScroll: true
+  });
 
   return (
     <AppLayout>
@@ -57,24 +34,37 @@ export default function HomePage() {
         {/* Client posts list */}
         {posts.length > 0 && (
           <motion.div 
-            variants={containerVariants}
+            variants={listContainerVariants}
             initial="hidden"
             animate="visible"
             className="space-y-6 mb-6"
           >
             {posts.map((p) => (
-              <motion.div key={p.id} variants={itemVariants}>
+              <motion.div key={p.id} variants={listItemVariants}>
                 <InstagramPostCard post={p} />
               </motion.div>
             ))}
           </motion.div>
         )}
 
+        {/* Infinite scroll trigger */}
+        {triggerRef && (
+          <div ref={triggerRef} className="flex justify-center py-4">
+            {loading && (
+              <div className="flex items-center space-x-2">
+                <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-accent-primary"></div>
+                <span className="text-sm text-gray-600 dark:text-gray-400">Loading more posts...</span>
+              </div>
+            )}
+          </div>
+        )}
+
         {/* Content */}
-        {loading ? (
+        {loading && posts.length === 0 ? (
           <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            variants={fadeInVariants}
+            initial="hidden"
+            animate="visible"
             className="liquid-glass p-4 sm:p-6"
           >
             <div className="flex items-center justify-center py-12">
@@ -84,8 +74,9 @@ export default function HomePage() {
           </motion.div>
         ) : error ? (
           <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            variants={fadeInVariants}
+            initial="hidden"
+            animate="visible"
             className="liquid-glass p-4 sm:p-6"
           >
             <div className="text-center py-12">
@@ -100,8 +91,9 @@ export default function HomePage() {
           </motion.div>
         ) : posts.length === 0 ? (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
+            variants={scaleInVariants}
+            initial="hidden"
+            animate="visible"
             transition={{ duration: 0.5 }}
             className="liquid-glass p-4 sm:p-6"
           >
@@ -126,7 +118,9 @@ export default function HomePage() {
                       await fetch('/api/seed-all', { method: 'POST' });
                       window.location.reload();
                     } catch (e) {
-                      console.error('Seeding failed', e);
+                      if (process.env.NODE_ENV === 'development') {
+                        console.error('Seeding failed', e);
+                      }
                     }
                   }}
                   className="px-4 py-2 border border-border-separator text-content-secondary rounded-card hover:bg-background-secondary transition-colors"
@@ -136,23 +130,7 @@ export default function HomePage() {
               </div>
             </div>
           </motion.div>
-        ) : (
-          <motion.div 
-            variants={containerVariants}
-            initial="hidden"
-            animate="visible"
-          >
-            {posts.map((post) => (
-              <motion.div key={post.id} variants={itemVariants}>
-                {post.postType === 'Collaborative' ? (
-                  <CollaborativePostCard post={post} />
-                ) : (
-                  <InstagramPostCard post={post} />
-                )}
-              </motion.div>
-            ))}
-          </motion.div>
-        )}
+        ) : null}
       </div>
     </AppLayout>
   );

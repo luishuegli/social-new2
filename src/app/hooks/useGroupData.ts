@@ -1,8 +1,26 @@
 'use client';
 
 import { useState, useEffect } from 'react';
-import { Group, UserProfile } from '../types/firestoreSchema';
+import { Group } from '../types';
+import { UserProfile } from '../types/firestoreSchema';
 import { getGroupDetails, getGroupMembers } from '../services/dataService';
+import { useAuth } from '../contexts/AuthContext';
+import { doc, onSnapshot } from 'firebase/firestore';
+import { db } from '../Lib/firebase';
+
+interface GroupData {
+  id: string;
+  name: string;
+  description: string;
+  memberCount: number;
+  members: UserProfile[];
+  memberIds: string[];
+  displayMembers: UserProfile[];
+  nextActivity?: any;
+  latestActivity?: any;
+  loading: boolean;
+  error?: string;
+}
 
 export function useGroupData(groupId: string) {
   const [group, setGroup] = useState<Group | null>(null);
@@ -91,7 +109,8 @@ export function useGroupsData(groupIds: string[]) {
               memberIds: memberIds,
               displayMembers: [], // Load on demand
               nextActivity: data.nextActivity,
-              latestActivity: data.latestActivity
+              latestActivity: data.latestActivity,
+              loading: false
             };
 
             dataMap.set(groupId, groupData);

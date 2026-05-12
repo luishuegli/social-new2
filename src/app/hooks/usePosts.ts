@@ -27,7 +27,7 @@ export function usePosts() {
   // Helper function to enrich posts with like status
   const enrichPostsWithLikeStatus = useCallback(async (posts: Post[]): Promise<Post[]> => {
     if (!user?.uid) return posts;
-    
+
     const enrichedPosts = await Promise.all(
       posts.map(async (post) => {
         const isLiked = await checkLikeStatus(post.id);
@@ -38,12 +38,10 @@ export function usePosts() {
   }, [user?.uid, checkLikeStatus]);
 
   useEffect(() => {
-    // Fetch posts for all users (authenticated and non-authenticated)
-    // This ensures the home feed is always populated
     setLoading(true);
-    
+
+    // If not authenticated, fetch from API (public feed)
     if (!user) {
-      // For non-authenticated users, fetch public posts via API
       fetch('/api/posts?limit=20')
         .then(async (res) => {
           if (!res.ok) throw new Error('Failed to fetch posts');
@@ -53,6 +51,7 @@ export function usePosts() {
           setError(null);
         })
         .catch((error) => {
+          console.error('Error fetching public posts:', error);
           setError('Failed to load posts');
           setPosts([]);
           setLoading(false);
@@ -60,74 +59,43 @@ export function usePosts() {
       return;
     }
 
-    setLoading(true);
+    // Authenticated: Listen to Firestore directly for real-time updates
     try {
       const postsRef = collection(db, 'posts');
       const q = query(postsRef, orderBy('timestamp', 'desc'));
-      let didHydrateFromApi = false;
+
       const unsub = onSnapshot(
         q,
-        (snap) => {
+        async (snap) => {
           const items: Post[] = [];
           snap.forEach((d) => {
-            const data = d.data() as Record<string, unknown>;
+            const data = d.data() as any;
             items.push({
               id: d.id,
-              userName: (data.authorName as string) || (data.authorId as string) || 'User',
-              userAvatar: (data.authorAvatar as string) || '',
-              timestamp: (data as any).timestamp?.toDate?.()?.toISOString?.() || new Date().toISOString(),
-              content: (data.description as string) || (data.activityTitle as string) || '',
-              imageUrl: Array.isArray((data as any).media) ? ((data as any).media?.[0]?.url as string | undefined) : (data.imageUrl as string | undefined),
-              likes: (data.likes as number) || 0,
-              comments: (data.comments as number) || 0,
-              isLiked: false,
-              // extra fields plumbed for feed logic (not in Post type)
-              postType: (data.postType as 'Collaborative' | 'Individual' | undefined) || 'Individual',
-              authenticityType: (data.authenticityType as 'Live Post' | 'Later Post' | undefined) || undefined,
-              groupName: (data.groupName as string | undefined),
-              participants: (data.participants as Array<{name?: string; avatarUrl?: string}> | undefined),
+              userName: data.authorName || data.authorId || 'User', // TODO: Fetch actual user profile
+              userAvatar: data.authorAvatar || '',
+              timestamp: data.timestamp?.toDate?.()?.toISOString?.() || new Date().toISOString(),
+              content: data.content || data.description || data.activityTitle || '',
+              imageUrl: data.imageUrl,
+              media: data.media,
+              likes: data.likes || 0,
+              comments: data.comments || 0,
+              isLiked: false, // Will be updated by enrich
+              postType: data.postType || 'Individual',
+              authenticityType: data.authenticityType,
+              groupName: data.groupName,
+              participants: data.participants,
+              visibility: data.visibility
             });
           });
+
           if (items.length > 0) {
-            // Enrich posts with like status for authenticated users
-            enrichPostsWithLikeStatus(items).then((enrichedPosts) => {
-              setPosts(enrichedPosts);
-              setError(null);
-              setLoading(false);
-            });
-          } else if (!didHydrateFromApi) {
-            // Fallback: hydrate from server (admin) API
-            fetch('/api/posts?limit=20')
-              .then(async (res) => {
-                if (!res.ok) throw new Error('posts api failed');
-                const json = await res.json();
-                const mapped: Post[] = (json.posts || []).map((data: any) => ({
-                  id: data.id,
-                  userName: data.userName || data.authorName || data.authorId || 'User',
-                  userAvatar: data.userAvatar || '',
-                  timestamp: data.timestamp || new Date().toISOString(),
-                  content: data.content || data.description || data.activityTitle || '',
-                  imageUrl: data.imageUrl || data.media?.[0]?.url,
-                  likes: data.likes || 0,
-                  comments: data.comments || 0,
-                  isLiked: false,
-                  postType: data.postType || 'Individual',
-                  authenticityType: data.authenticityType,
-                  groupName: data.groupName,
-                  participants: data.participants,
-                }));
-                didHydrateFromApi = true;
-                // Enrich API posts with like status too
-                enrichPostsWithLikeStatus(mapped).then((enrichedPosts) => {
-                  setPosts(enrichedPosts);
-                  setError(null);
-                  setLoading(false);
-                });
-              })
-              .catch(() => {
-                setPosts([]);
-                setLoading(false);
-              });
+            const enriched = await enrichPostsWithLikeStatus(items);
+            setPosts(enriched);
+            setLoading(false);
+          } else {
+            setPosts([]);
+            setLoading(false);
           }
         },
         (err) => {
@@ -142,7 +110,7 @@ export function usePosts() {
       setError('Failed to load posts');
       setLoading(false);
     }
-  }, [user, retryCount]);
+  }, [user, retryCount, enrichPostsWithLikeStatus]);
 
   const retry = useCallback(() => {
     setRetryCount(prev => prev + 1);
@@ -170,7 +138,7 @@ export function usePosts() {
 
     try {
       const token = await user.getIdToken();
-      const response = await fetch('/api/like-post', {
+      const response = await fetch('/api/like-post', { // Note: Ensure this API exists or create it
         method: 'POST',
         headers: {
           'Authorization': `Bearer ${token}`,
@@ -179,24 +147,12 @@ export function usePosts() {
         body: JSON.stringify({ postId, isLiked })
       });
 
-      const result = await response.json();
-      
       if (!response.ok) {
-        throw new Error(result.error || 'Failed to like post');
+        throw new Error('Failed to like post');
       }
 
-      // Update with actual like count from server
-      setPosts(prev => prev.map(post => {
-        if (post.id === postId) {
-          return {
-            ...post,
-            isLiked: result.isLiked,
-            likes: result.newLikeCount
-          };
-        }
-        return post;
-      }));
-
+      // Success - no need to do anything as we optimistically updated
+      // Real-time listener will eventually sync the true count
     } catch (err) {
       console.error('Error liking post:', err);
       // Revert optimistic update on error
@@ -216,9 +172,6 @@ export function usePosts() {
     const post = posts.find(p => p.id === postId);
     if (post && onOpenComments) {
       onOpenComments(post);
-    } else {
-      console.log('Opening comments for post:', postId);
-      // Fallback: could navigate to post detail page
     }
   }, [posts]);
 

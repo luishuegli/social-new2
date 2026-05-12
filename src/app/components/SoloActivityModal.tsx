@@ -3,7 +3,13 @@
 import React, { useState } from 'react';
 import { X } from 'lucide-react';
 
-export default function SoloActivityModal({ isOpen, onClose, onCreate }) {
+interface SoloActivityModalProps {
+  isOpen: boolean;
+  onClose: () => void;
+  onCreate: (activity: any) => void;
+}
+
+export default function SoloActivityModal({ isOpen, onClose, onCreate }: SoloActivityModalProps) {
   const [title, setTitle] = useState('');
   const [date, setDate] = useState('');
   const [time, setTime] = useState('');
@@ -11,7 +17,7 @@ export default function SoloActivityModal({ isOpen, onClose, onCreate }) {
 
   if (!isOpen) return null;
 
-  const handleSubmit = (e) => {
+  const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     onCreate({ title, date, time, description });
     // Reset form

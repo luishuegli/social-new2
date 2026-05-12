@@ -109,11 +109,11 @@ export function usePostableActivities(): {
           try {
             if (a.date && typeof a.date === 'string') {
               parsedDate = new Date(a.date);
-            } else if (a.date instanceof Date) {
-              parsedDate = a.date;
-            } else if (a.date && typeof a.date.toDate === 'function') {
-              // Firestore Timestamp
-              parsedDate = a.date.toDate();
+             } else if (a.date && typeof a.date === 'object' && (a.date as any) instanceof Date) {
+               parsedDate = a.date as Date;
+             } else if (a.date && typeof (a.date as any).toDate === 'function') {
+               // Firestore Timestamp
+               parsedDate = (a.date as any).toDate();
             } else {
               parsedDate = new Date();
             }

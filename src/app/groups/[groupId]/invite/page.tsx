@@ -20,7 +20,11 @@ export default function GroupInvitePage({ params }: InvitePageProps) {
   const [selected, setSelected] = useState<string[]>([]);
   const [submitting, setSubmitting] = useState(false);
 
-  const sorted = useMemo(() => connections.slice().sort((a, b) => a.other.name.localeCompare(b.other.name)), [connections]);
+  const sorted = useMemo(() => connections.slice().sort((a, b) => {
+    const aOther = a.members.find(m => m.uid !== user?.uid);
+    const bOther = b.members.find(m => m.uid !== user?.uid);
+    return (aOther?.displayName || '').localeCompare(bOther?.displayName || '');
+  }), [connections, user?.uid]);
 
   const toggle = (uid: string) => {
     setSelected((prev) => (prev.includes(uid) ? prev.filter((x) => x !== uid) : [...prev, uid]));
@@ -58,12 +62,16 @@ export default function GroupInvitePage({ params }: InvitePageProps) {
           <p className="text-content-secondary mb-4">Pick contacts to add to your new group.</p>
 
           <div className="space-y-2 max-h-[50vh] overflow-auto">
-            {sorted.map((c) => (
-              <label key={c.id} className="flex items-center gap-3 p-2 rounded-card hover:bg-background-secondary cursor-pointer">
-                <input type="checkbox" checked={selected.includes(c.other.id)} onChange={() => toggle(c.other.id)} />
-                <span className="text-content-primary">{c.other.name || c.other.id}</span>
-              </label>
-            ))}
+            {sorted.map((c) => {
+              const otherUser = c.members.find(m => m.uid !== user?.uid);
+              if (!otherUser) return null;
+              return (
+                <label key={c.id} className="flex items-center gap-3 p-2 rounded-card hover:bg-background-secondary cursor-pointer">
+                  <input type="checkbox" checked={selected.includes(otherUser.uid)} onChange={() => toggle(otherUser.uid)} />
+                  <span className="text-content-primary">{otherUser.displayName || otherUser.uid}</span>
+                </label>
+              );
+            })}
             {sorted.length === 0 && (
               <p className="text-sm text-content-secondary">No connections found.</p>
             )}

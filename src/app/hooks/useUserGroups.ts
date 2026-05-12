@@ -2,7 +2,7 @@
 
 import { useState, useEffect } from 'react';
 import { useAuth } from '../contexts/AuthContext';
-import { Group } from '../types/firestoreSchema';
+import { Group } from '../types';
 import { getUserGroups } from '../services/dataService';
 
 export function useUserGroups(userId?: string) {

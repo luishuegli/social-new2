@@ -1,6 +1,7 @@
 import { doc, getDoc, collection, getDocs, query, where } from 'firebase/firestore';
 import { db } from '@/app/Lib/firebase';
-import { UserProfile, Group } from '@/app/types/firestoreSchema';
+import { UserProfile } from '@/app/types/firestoreSchema';
+import { Group } from '@/app/types';
 
 // Simple in-memory cache with TTL
 const cache = new Map<string, { data: any; expires: number }>();
@@ -65,7 +66,7 @@ export async function getGroupMembers(groupId: string): Promise<UserProfile[]> {
     if (!group || !group.members) {
       return [];
     }
-    const memberPromises = group.members.map(userId => getUserProfile(userId));
+     const memberPromises = group.members.map(member => getUserProfile(member.id));
     const members = await Promise.all(memberPromises);
     return members.filter(member => member !== null) as UserProfile[];
   } catch (error) {

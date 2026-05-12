@@ -47,7 +47,7 @@ export default function InstagramPostCard({ post }: InstagramPostCardProps) {
     try {
       await toggleLike();
     } catch (error) {
-      console.error('Failed to toggle like:', error);
+      // Error is handled by the hook
     }
   };
 
@@ -88,14 +88,7 @@ export default function InstagramPostCard({ post }: InstagramPostCardProps) {
               width={40}
               height={40}
               className="rounded-full object-cover"
-              onError={(e) => {
-                console.error('Image failed to load:', post.userAvatar || post.authorAvatar);
-                console.error('Error details:', e);
-                setImageError(true);
-              }}
-              onLoad={() => {
-                console.log('Image loaded successfully:', post.userAvatar || post.authorAvatar);
-              }}
+              onError={() => setImageError(true)}
             />
             <div>
               <div className="flex items-center space-x-2">

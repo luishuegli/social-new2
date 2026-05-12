@@ -16,7 +16,8 @@ service cloud.firestore {
     }
     
     match /users/{userId} {
-      // Allow authenticated users to read basic user profiles
+      // Allow authenticated users to read all user profiles
+      // This includes discoverable users for compass/discovery features
       allow read: if isAuthenticated();
       allow write: if isAuthenticated() && request.auth.uid == userId;
       
@@ -217,6 +218,12 @@ service cloud.firestore {
       allow read: if false; // Never allow client reads
       allow create: if false; // Only through API
       allow update, delete: if false;
+    }
+    
+    // Compass - User vector data for matching
+    match /user_vectors/{userId} {
+      allow read: if isAuthenticated();
+      allow write: if isAuthenticated() && request.auth.uid == userId;
     }
     
     // Compass - Interests are readable by all authenticated users

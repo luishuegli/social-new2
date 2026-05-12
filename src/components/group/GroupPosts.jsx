@@ -6,55 +6,27 @@ import { motion } from 'framer-motion';
 import { Heart, MessageCircle, Share, MoreHorizontal } from 'lucide-react';
 import LiquidGlass from '../ui/LiquidGlass';
 import PostImageModal from '../ui/PostImageModal';
-import { db } from '@/app/Lib/firebase';
-import { collection, onSnapshot, orderBy, query, where, doc, getDoc } from 'firebase/firestore';
+import { usePaginatedGroupPosts } from '@/hooks/usePaginatedGroupPosts';
+import { InfiniteScrollTrigger } from '@/components/common/PaginationTrigger';
 import { useAuth } from '@/app/contexts/AuthContext';
 
 export default function GroupPosts({ group }) {
   const { user } = useAuth();
-  const [posts, setPosts] = useState([]);
   const [activeIndex, setActiveIndex] = useState(-1);
   const [loadingLikes, setLoadingLikes] = useState(new Set());
-  useEffect(() => {
-    const postsRef = collection(db, 'posts');
-    if (!group?.id) return;
-    const q = query(postsRef, where('groupId', '==', group.id), orderBy('timestamp', 'desc'));
-    const unsub = onSnapshot(q, async (snap) => {
-      const items = [];
-      snap.forEach((d) => {
-        const data = d.data();
-        items.push({
-          id: d.id,
-          title: data.title || data.activityTitle || 'Post',
-          content: data.description || '',
-          imageUrl: data.media?.[0]?.url || '',
-          author: { name: data.authorName || data.authorId || 'User', avatarUrl: data.authorAvatar || '' },
-          timestamp: data.timestamp?.toDate?.()?.toISOString?.() || new Date().toISOString(),
-          likes: data.likes || 0,
-          comments: data.comments || 0,
-          isLiked: false, // Will be updated below
-        });
-      });
-
-      // Check like status for authenticated users
-      if (user?.uid && items.length > 0) {
-        const postsWithLikeStatus = await Promise.all(
-          items.map(async (post) => {
-            try {
-              const likeDoc = await getDoc(doc(db, 'posts', post.id, 'likes', user.uid));
-              return { ...post, isLiked: likeDoc.exists() };
-            } catch {
-              return post;
-            }
-          })
-        );
-        setPosts(postsWithLikeStatus);
-      } else {
-        setPosts(items);
-      }
-    });
-    return () => unsub();
-  }, [group?.id, user?.uid]);
+  
+  const {
+    posts,
+    loading,
+    hasMore,
+    error,
+    loadMore,
+    refresh,
+    triggerRef
+  } = usePaginatedGroupPosts({
+    groupId: group?.id || '',
+    enableInfiniteScroll: true
+  });
 
   const handleLike = async (postId) => {
     if (!user) {
@@ -273,6 +245,12 @@ export default function GroupPosts({ group }) {
             </motion.div>
           ))}
         </div>
+        {/* Infinite scroll trigger */}
+        <InfiniteScrollTrigger
+          triggerRef={triggerRef}
+          loading={loading}
+          hasMore={hasMore}
+        />
       </div>
     </LiquidGlass>
     <PostImageModal

@@ -1,92 +1,86 @@
-'use client';
-
+// src/app/hooks/useConversations.ts
 import { useState, useEffect } from 'react';
 import { db } from '../Lib/firebase';
-import { collection, query, where, orderBy, onSnapshot, limit, getDocs, doc, getDoc } from 'firebase/firestore';
-import { useAuth } from '../contexts/AuthContext';
-import { Conversation } from '../types';
+import { collection, query, where, orderBy, onSnapshot, Timestamp } from 'firebase/firestore';
 
-export function useConversations() {
+export interface Conversation {
+  id: string;
+  participants: string[];
+  participantInfo: {
+    [userId: string]: {
+      username: string;
+      photoURL?: string;
+    };
+  };
+  lastMessage: {
+    text: string;
+    senderId: string;
+    timestamp: Timestamp;
+  } | null;
+  unreadCount: {
+    [userId: string]: number;
+  };
+  createdAt: Timestamp;
+  updatedAt: Timestamp;
+}
+
+export function useConversations(userId: string | undefined) {
   const [conversations, setConversations] = useState<Conversation[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  const { user } = useAuth();
-
   useEffect(() => {
-    if (!user) {
-      setConversations([]);
+    if (!userId) {
       setLoading(false);
       return;
     }
 
     setLoading(true);
-    try {
-      const chatsRef = collection(db, 'chats');
-      // Chats where current user is a member
-      const q = query(chatsRef, where('members', 'array-contains', user.uid));
+    setError(null);
 
-      const unsub = onSnapshot(q, async (snapshot) => {
-        const items: Conversation[] = [];
-        for (const docSnap of snapshot.docs) {
-          const data = docSnap.data() as any;
-          const otherId = (data.members || []).find((id: string) => id !== user.uid);
-          // Fetch last message
-          const msgsRef = collection(db, 'chats', docSnap.id, 'messages');
-          const lastQ = query(msgsRef, orderBy('timestamp', 'desc'), limit(1));
-          const lastSnap = await getDocs(lastQ);
-          const last = lastSnap.docs[0]?.data();
+    // Query for conversations where user is a participant
+    const q = query(
+      collection(db, 'conversations'),
+      where('participants', 'array-contains', userId),
+      orderBy('updatedAt', 'desc')
+    );
 
-          // Fetch other user's profile for name and avatar
-          let otherName = otherId || 'User';
-          let otherAvatar = '';
-          if (otherId) {
-            try {
-              const { getUserProfile } = await import('../services/dataService');
-              const profile = await getUserProfile(otherId);
-              if (profile) {
-                otherName = profile.displayName || otherId;
-                otherAvatar = profile.profilePictureUrl || '';
-              }
-            } catch {}
-          }
-          items.push({
-            id: docSnap.id,
-            otherUser: {
-              id: otherId || 'unknown',
-              name: otherName,
-              avatar: otherAvatar
-            },
-            lastMessage: last ? {
-              content: last.text,
-              timestamp: last.timestamp?.toDate?.().toISOString?.() || new Date().toISOString(),
-              senderId: last.senderId
-            } : { content: '', timestamp: new Date().toISOString(), senderId: '' },
-            unreadCount: 0
+    const unsubscribe = onSnapshot(
+      q,
+      (snapshot) => {
+        const conversationsData: Conversation[] = [];
+        
+        snapshot.docs.forEach((doc) => {
+          const data = doc.data();
+          
+          conversationsData.push({
+            id: doc.id,
+            participants: data.participants || [],
+            participantInfo: data.participantInfo || {},
+            lastMessage: data.lastMessage || null,
+            unreadCount: data.unreadCount || {},
+            createdAt: data.createdAt,
+            updatedAt: data.updatedAt,
           });
-        }
-
-        items.sort((a, b) => new Date(b.lastMessage.timestamp).getTime() - new Date(a.lastMessage.timestamp).getTime());
-        setConversations(items);
-        setError(null);
+        });
+        
+        setConversations(conversationsData);
         setLoading(false);
-      }, (err) => {
-        console.error('Conversations listener error:', err);
-        setError('Failed to load conversations');
+      },
+      (err) => {
+        console.error('Error fetching conversations:', err);
+        setError(err.message);
         setLoading(false);
-      });
+      }
+    );
 
-      return () => unsub();
-    } catch (err) {
-      console.error('Error setting up conversations listener:', err);
-      setError('Failed to load conversations');
-      setLoading(false);
-    }
-  }, [user]);
+    return () => unsubscribe();
+  }, [userId]);
 
-  return {
-    conversations,
-    loading,
-    error
-  };
+  // Calculate total unread count
+  const totalUnread = conversations.reduce((sum, conv) => {
+    return sum + (userId ? (conv.unreadCount[userId] || 0) : 0);
+  }, 0);
+
+  return { conversations, loading, error, totalUnread };
 }

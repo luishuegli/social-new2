@@ -87,10 +87,13 @@ export interface SwipeLog {
   timestamp: Timestamp;
 }
 
-// Match result returned by the discovery API
-export interface MatchResult {
+// Connection result returned by the discovery API
+export interface ConnectionResult {
   profile: Partial<UserProfile>; // Client-safe version
   score: number;
-  sparkTitle?: string; // Generated title for the match
+  sparkTitle?: string; // Generated title for the connection
   sharedInterests?: CoreInterest[];
 }
+
+// Legacy alias for backward compatibility
+export type MatchResult = ConnectionResult;

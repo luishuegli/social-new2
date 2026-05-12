@@ -13,7 +13,7 @@ import { ArrowLeft, Zap, MapPin, Calendar } from 'lucide-react';
 import { analyzeBlobAspectRatio, getAspectRatioClasses } from '../../../utils/imageUtils';
 
 export default function LivePostCreatePage() {
-  const { user } = useAuth();
+  const { user, firebaseUser } = useAuth();
   const { activities: postableActivities, loading, error } = usePostableActivities();
   const router = useRouter();
   
@@ -39,10 +39,13 @@ export default function LivePostCreatePage() {
   };
 
   const handlePost = async () => {
-    if (!user || !capturedPhoto || !postableActivities[0]) {
+    if (!user || !firebaseUser || !capturedPhoto || !postableActivities[0]) {
       setPostError('Missing required information');
       return;
     }
+    
+    // Use firebaseUser.uid for Firestore rules (must match request.auth.uid)
+    const userId = firebaseUser.uid;
 
     setIsPosting(true);
     setPostError(null);
@@ -50,7 +53,7 @@ export default function LivePostCreatePage() {
     try {
       // Upload photo to Firebase Storage
       const timestamp = Date.now();
-      const fileName = `live-posts/${user.uid}/${timestamp}.jpg`;
+      const fileName = `live-posts/${userId}/${timestamp}.jpg`;
       const storageRef = ref(storage, fileName);
       
       await uploadBytes(storageRef, capturedPhoto);
@@ -58,11 +61,13 @@ export default function LivePostCreatePage() {
 
       // Create post document
       const activity = postableActivities[0];
+      // IMPORTANT: Only store authorId, NOT authorName/authorAvatar
+      // User data should always be fetched from users collection (single source of truth)
       const postDoc = {
-        // Author info
-        authorId: user.uid,
-        authorName: user.displayName || user.email || 'Anonymous',
-        authorAvatar: user.profilePictureUrl || user.photoURL || '',
+        // Author - ONLY store ID, fetch from users collection when displaying
+        // IMPORTANT: Use firebaseUser.uid to match request.auth.uid in Firestore rules
+        authorId: userId,
+        // DO NOT store: authorName, authorAvatar (these are in users collection)
         
         // Activity info
         activityTitle: activity.title,

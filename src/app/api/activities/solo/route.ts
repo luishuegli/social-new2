@@ -2,7 +2,7 @@ import { NextResponse } from 'next/server';
 import { adminDb, FieldValue } from '@/app/Lib/firebaseAdmin';
 
 // POST: Create a new solo activity
-export async function POST(request) {
+export async function POST(request: Request) {
   try {
     const { userId, title, date, time, description } = await request.json();
 
@@ -32,7 +32,7 @@ export async function POST(request) {
 }
 
 // GET: Fetch solo activities for a user
-export async function GET(request) {
+export async function GET(request: Request) {
   try {
     const { searchParams } = new URL(request.url);
     const userId = searchParams.get('userId');

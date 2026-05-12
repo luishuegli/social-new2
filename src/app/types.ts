@@ -50,6 +50,7 @@ export interface Group {
 }
 
 // Post types
+// Post types
 export interface Post {
   id: string;
   userName: string;
@@ -57,6 +58,7 @@ export interface Post {
   timestamp: string;
   content: string;
   imageUrl?: string;
+  media?: { type: 'image' | 'video', url: string }[]; // Added for consistency
   likes: number;
   comments: number;
   isLiked: boolean;
@@ -65,6 +67,7 @@ export interface Post {
   authenticityType?: 'Live Post' | 'Later Post';
   groupName?: string;
   participants?: Array<{ name?: string; avatarUrl?: string }>;
+  visibility?: 'public' | 'friends' | 'private';
 }
 
 // Conversation types

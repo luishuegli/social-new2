@@ -31,6 +31,7 @@ interface StoryCardProps {
   isTopCard?: boolean;
   isAnimating?: boolean;
   isDailyTopPick?: boolean;
+  onViewProfile?: () => void;
 }
 
 const ICEBREAKER_TEMPLATES = [
@@ -47,7 +48,8 @@ export default function StoryCard({
   connectionTokens,
   isTopCard,
   isAnimating = false,
-  isDailyTopPick = false
+  isDailyTopPick = false,
+  onViewProfile
 }: StoryCardProps) {
   const [showDetails, setShowDetails] = useState(false);
   const [customMessage, setCustomMessage] = useState('');
@@ -198,10 +200,14 @@ export default function StoryCard({
             <img 
               src={match.profile.photoURL} 
               alt={match.profile.displayName || match.profile.username}
-              className="w-32 h-32 rounded-full object-cover border-4 border-white/80 dark:border-gray-700/80 shadow-xl backdrop-blur-sm"
+              onClick={onViewProfile}
+              className="w-32 h-32 rounded-full object-cover border-4 border-white/80 dark:border-gray-700/80 shadow-xl backdrop-blur-sm cursor-pointer hover:scale-105 transition-transform"
             />
           ) : (
-            <div className="w-32 h-32 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center shadow-xl border-4 border-white/80 dark:border-gray-700/80">
+            <div 
+              onClick={onViewProfile}
+              className="w-32 h-32 rounded-full bg-gradient-to-br from-purple-400 to-pink-400 flex items-center justify-center shadow-xl border-4 border-white/80 dark:border-gray-700/80 cursor-pointer hover:scale-105 transition-transform"
+            >
               <span className="text-4xl text-white font-bold">
                 {(match.profile.displayName || match.profile.username || 'U').charAt(0).toUpperCase()}
               </span>
@@ -225,11 +231,17 @@ export default function StoryCard({
       <div className="p-6">
         {/* Name and Username */}
         <div className="text-center mb-4">
-          <h2 className="text-2xl font-bold text-content-primary">
+          <h2 
+            onClick={onViewProfile}
+            className="text-2xl font-bold text-content-primary cursor-pointer hover:text-accent-primary transition-colors"
+          >
             {match.profile.displayName || match.profile.username}
           </h2>
           {match.profile.displayName && match.profile.username && (
-            <p className="text-sm text-gray-600 dark:text-gray-400">
+            <p 
+              onClick={onViewProfile}
+              className="text-sm text-gray-600 dark:text-gray-400 cursor-pointer hover:text-accent-primary transition-colors"
+            >
               @{match.profile.username}
             </p>
           )}

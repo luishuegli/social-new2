@@ -38,13 +38,31 @@ export interface Group {
 
 // Feed Post (top-level 'posts' collection)
 export interface Post {
-  activityTitle: string;
-  authorId: string; // The user UID who created it
-  groupId?: string; // The ID of the group if it's a group post
-  authenticityType: 'Live Post' | 'Later Post';
+  id?: string;
+  authorId: string;
+  groupId?: string;
+  activityId?: string;
+  
+  // Content
+  content: string; // Main text content
+  activityTitle?: string; // Optional title if it's an activity
+  
+  // Media (Unified)
   media: { type: 'image' | 'video', url: string }[];
-  description: string;
-  timestamp: Date;
+  imageUrl?: string; // Legacy support
+  
+  // Metadata
+  authenticityType: 'Live Post' | 'Later Post';
+  visibility?: 'public' | 'friends' | 'private';
+  postType?: 'Collaborative' | 'Individual';
+  
+  // Metrics
+  likes: number;
+  comments: number;
+  
+  // Timestamps
+  timestamp: any; // Firestore Timestamp or Date
+  createdAt: any; // Firestore Timestamp or Date
 }
 
 // Direct Chat (top-level 'chats' collection)

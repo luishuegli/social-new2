@@ -4,18 +4,27 @@ import React, { useState, useEffect, useCallback } from 'react';
 import { useAuth } from '@/app/contexts/AuthContext';
 import { MatchResult } from '@/app/types/firestoreSchema';
 import DiscoveryCardDeck from '@/components/compass/DiscoveryCardDeck';
+import PaginatedDiscoveryCardDeck from '@/components/compass/PaginatedDiscoveryCardDeck';
+import ActivityBasedDiscovery from '@/components/compass/ActivityBasedDiscovery';
 import InterestChannels from '@/components/compass/InterestChannels';
 import AppLayout from '@/app/components/AppLayout';
-import { Sparkles, RefreshCw, Heart, Zap, Users } from 'lucide-react';
+import { Sparkles, RefreshCw, Heart, Zap, Users, Search } from 'lucide-react';
+import { logger } from '@/lib/logger';
+
+type DiscoveryMode = 'people' | 'activities' | 'search';
 
 export default function CompassPage() {
   const { user, firebaseUser } = useAuth();
-  const [matches, setMatches] = useState<MatchResult[]>([]);
+  const [mode, setMode] = useState<DiscoveryMode>('people');
+  const [connections, setConnections] = useState<MatchResult[]>([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [selectedInterest, setSelectedInterest] = useState<string | null>(null);
   const [connectionTokens, setConnectionTokens] = useState<number>(0);
   const [needsOnboarding, setNeedsOnboarding] = useState(false);
+  const [searchQuery, setSearchQuery] = useState<string>('');
+  const [searchResults, setSearchResults] = useState<MatchResult[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
 
   // Check if user's vector is initialized
   const checkInitialization = useCallback(async () => {
@@ -41,8 +50,8 @@ export default function CompassPage() {
     return false;
   }, [user, firebaseUser]);
 
-  // Fetch matches from the discovery API
-  const fetchMatches = useCallback(async () => {
+  // Fetch connections from the discovery API
+  const fetchConnections = useCallback(async () => {
     if (!user || !firebaseUser) return;
 
     setLoading(true);
@@ -66,7 +75,7 @@ export default function CompassPage() {
         const errorData = await response.json();
         if (errorData.requiresOnboarding) {
           setNeedsOnboarding(true);
-          setMatches([]);
+          setConnections([]);
           return;
         }
         throw new Error(errorData.error || 'Failed to fetch matches');
@@ -76,12 +85,12 @@ export default function CompassPage() {
 
       if (data.status === 'NEEDS_ONBOARDING') {
         setNeedsOnboarding(true);
-        setMatches([]);
+        setConnections([]);
       } else {
-        setMatches(data.matches || []);
+        setConnections(data.connections || []);
       }
     } catch (error) {
-      console.error('Error fetching matches:', error);
+      logger.error('Error fetching matches', error, 'compass');
       setError(error instanceof Error ? error.message : 'An error occurred');
     } finally {
       setLoading(false);
@@ -91,13 +100,13 @@ export default function CompassPage() {
   // Initialize on mount
   useEffect(() => {
     if (user) {
-      fetchMatches();
+      fetchConnections();
     }
-  }, [user, fetchMatches]);
+  }, [user, fetchConnections]);
 
   // Handle connect or skip action
-  const handleAction = async (targetId: string, action: 'connect' | 'skip') => {
-    console.log(`handleAction called: targetId=${targetId}, action=${action}`);
+  const handleAction = async (targetId: string, action: 'connect' | 'skip', message?: string) => {
+    console.log(`handleAction called: targetId=${targetId}, action=${action}, message=${message ? 'provided' : 'none'}`);
     if (!user || !firebaseUser) {
       console.log('No user or firebaseUser, skipping action');
       return;
@@ -115,6 +124,7 @@ export default function CompassPage() {
         body: JSON.stringify({
           targetId,
           action,
+          message: message || undefined,
         }),
       });
 
@@ -124,12 +134,12 @@ export default function CompassPage() {
           setConnectionTokens(data.remainingTokens);
         }
         
-        // Remove the match from the list
-        setMatches(prev => prev.filter(m => m.profile.uid !== targetId));
+        // Remove the connection from the list
+        setConnections(prev => prev.filter(c => c.profile.uid !== targetId));
         
-        // Fetch more matches if running low
-        if (matches.length <= 3) {
-          fetchMatches();
+        // Fetch more connections if running low
+        if (connections.length <= 3) {
+          fetchConnections();
         }
       } else {
         const errorData = await response.json();
@@ -147,9 +157,41 @@ export default function CompassPage() {
     setSelectedInterest(interest);
   };
 
+  // Handle search functionality
+  const handleSearch = useCallback(async (query: string) => {
+    if (!firebaseUser || !query.trim()) return;
+
+    setSearchLoading(true);
+    try {
+      const token = await firebaseUser.getIdToken();
+      const response = await fetch('/api/compass/discover', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+          'Authorization': `Bearer ${token}`,
+        },
+        body: JSON.stringify({
+          searchQuery: query.trim(),
+        }),
+      });
+
+      if (response.ok) {
+        const data = await response.json();
+        setSearchResults(data.matches || []);
+      } else {
+        setSearchResults([]);
+      }
+    } catch (error) {
+      console.error('Error searching users:', error);
+      setSearchResults([]);
+    } finally {
+      setSearchLoading(false);
+    }
+  }, [firebaseUser]);
+
   // Refresh matches
   const handleRefresh = () => {
-    fetchMatches();
+    fetchConnections();
   };
 
   if (!user) {
@@ -187,14 +229,14 @@ export default function CompassPage() {
   return (
     <AppLayout>
       <div className="min-h-full">
-      {/* Unified Header with Interest Channels */}
+      {/* Unified Header with Mode Toggle */}
       <div className="liquid-glass sticky top-0 z-10 border-b border-gray-200/30 dark:border-gray-700/30">
         <div className="container mx-auto px-6 py-4">
           {/* Header Section */}
           <div className="flex items-center justify-between mb-4">
             <div className="flex items-center space-x-3">
               <Sparkles className="w-8 h-8 text-content-primary" />
-              <h1 className="text-2xl font-bold text-content-primary">Connection Hub</h1>
+              <h1 className="text-2xl font-bold text-content-primary">Discover</h1>
             </div>
             
             <div className="flex items-center space-x-4">
@@ -209,12 +251,101 @@ export default function CompassPage() {
             </div>
           </div>
 
-          {/* Interest Channels Section */}
-          <InterestChannels 
-            onSelectInterest={handleInterestSelect}
-            selectedInterest={selectedInterest}
-            isEmbedded={true}
-          />
+          {/* Mode Toggle */}
+          <div className="flex justify-center mb-4">
+            <div className="flex space-x-1 bg-white/10 backdrop-blur-sm rounded-lg border border-white/10 p-1.5 w-full max-w-2xl">
+              <button
+                onClick={() => setMode('people')}
+                className={`
+                  flex-1 px-6 py-4 rounded-lg text-body font-semibold transition-all duration-200 flex items-center justify-center space-x-2
+                  focus:outline-none focus:ring-0 focus:border-0 focus:shadow-none
+                  active:outline-none active:ring-0 active:border-0 active:shadow-none
+                  ${mode === 'people'
+                    ? 'bg-white/20 text-white backdrop-blur-sm'
+                    : 'text-white/70 hover:text-white hover:bg-white/5 transition-all duration-200'
+                  }
+                `}
+                style={{ outline: 'none' }}
+              >
+                <Users className="w-5 h-5" />
+                <span>For You</span>
+              </button>
+              <button
+                onClick={() => setMode('activities')}
+                className={`
+                  flex-1 px-6 py-4 rounded-lg text-body font-semibold transition-all duration-200 flex items-center justify-center space-x-2
+                  focus:outline-none focus:ring-0 focus:border-0 focus:shadow-none
+                  active:outline-none active:ring-0 active:border-0 active:shadow-none
+                  ${mode === 'activities'
+                    ? 'bg-white/20 text-white backdrop-blur-sm'
+                    : 'text-white/70 hover:text-white hover:bg-white/5 transition-all duration-200'
+                  }
+                `}
+                style={{ outline: 'none' }}
+              >
+                <Users className="w-5 h-5" />
+                <span>By Activity</span>
+              </button>
+              <button
+                onClick={() => setMode('search')}
+                className={`
+                  flex-1 px-6 py-4 rounded-lg text-body font-semibold transition-all duration-200 flex items-center justify-center space-x-2
+                  focus:outline-none focus:ring-0 focus:border-0 focus:shadow-none
+                  active:outline-none active:ring-0 active:border-0 active:shadow-none
+                  ${mode === 'search'
+                    ? 'bg-white/20 text-white backdrop-blur-sm'
+                    : 'text-white/70 hover:text-white hover:bg-white/5 transition-all duration-200'
+                  }
+                `}
+                style={{ outline: 'none' }}
+              >
+                <Search className="w-5 h-5" />
+                <span>Search</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Interest Channels Section - Only show for people mode */}
+          {mode === 'people' && (
+            <InterestChannels 
+              onSelectInterest={handleInterestSelect}
+              selectedInterest={selectedInterest}
+              isEmbedded={true}
+            />
+          )}
+
+          {/* Search Interface - Only show for search mode */}
+          {mode === 'search' && (
+            <div className="flex justify-center mb-6">
+              <div className="w-full max-w-md">
+                <div className="relative">
+                  <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <input
+                    type="text"
+                    placeholder="Search by username or name..."
+                    value={searchQuery}
+                    onChange={(e) => {
+                      setSearchQuery(e.target.value);
+                      if (e.target.value.trim()) {
+                        const timeoutId = setTimeout(() => {
+                          handleSearch(e.target.value);
+                        }, 300);
+                        return () => clearTimeout(timeoutId);
+                      } else {
+                        setSearchResults([]);
+                      }
+                    }}
+                    className="w-full pl-10 pr-4 py-3 liquid-glass rounded-lg border border-gray-200/20 dark:border-gray-700/20 text-content-primary placeholder-gray-500 dark:placeholder-gray-400 focus:border-accent-primary/50 focus:outline-none"
+                  />
+                </div>
+                {searchLoading && (
+                  <div className="text-center mt-4">
+                    <p className="text-sm text-gray-600 dark:text-gray-400">Searching...</p>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
         </div>
       </div>
 
@@ -226,41 +357,63 @@ export default function CompassPage() {
           </div>
         )}
 
-        {loading ? (
-          <div className="flex items-center justify-center py-32">
-            <div className="text-center">
-              <div className="animate-pulse">
-                <Sparkles className="w-16 h-16 mx-auto mb-4 text-content-primary" />
-              </div>
-              <p className="text-lg text-gray-600 dark:text-gray-300">Finding your perfect friend matches...</p>
-            </div>
-          </div>
-        ) : matches.length > 0 ? (
+        {/* Conditional Rendering Based on Mode */}
+        {mode === 'people' ? (
           <div className="max-w-2xl mx-auto">
-            {/* Discovery Card Deck */}
-            <DiscoveryCardDeck
-              matches={matches}
+            {/* Paginated Discovery Card Deck */}
+            <PaginatedDiscoveryCardDeck
               onSwipe={handleAction}
               connectionTokens={connectionTokens}
+               interestFilter={selectedInterest || undefined}
             />
           </div>
-        ) : (
-          <div className="flex items-center justify-center py-32">
-            <div className="text-center">
-              <Users className="w-16 h-16 mx-auto mb-4 text-gray-400" />
-              <h3 className="text-xl font-semibold mb-2">No new connections available right now</h3>
-              <p className="text-gray-600 dark:text-gray-400 mb-6">
-                Check back later or try exploring different interest channels
-              </p>
-              <button
-                onClick={handleRefresh}
-                className="px-6 py-2 liquid-glass text-content-primary rounded-lg hover:opacity-90 transition-opacity"
-              >
-                Discover New Friends
-              </button>
-            </div>
-          </div>
-        )}
+        ) : mode === 'activities' ? (
+          <ActivityBasedDiscovery 
+            onSwipe={handleAction}
+            connectionTokens={connectionTokens}
+          />
+        ) : mode === 'search' ? (
+          <>
+            {searchLoading ? (
+              <div className="flex items-center justify-center py-32">
+                <div className="text-center">
+                  <div className="animate-pulse">
+                    <Search className="w-16 h-16 mx-auto mb-4 text-content-primary" />
+                  </div>
+                  <p className="text-lg text-gray-600 dark:text-gray-300">Searching for users...</p>
+                </div>
+              </div>
+            ) : searchQuery.trim() && searchResults.length > 0 ? (
+              <div className="max-w-2xl mx-auto">
+                <PaginatedDiscoveryCardDeck
+                  onSwipe={handleAction}
+                  connectionTokens={connectionTokens}
+                  searchQuery={searchQuery || undefined}
+                />
+              </div>
+            ) : searchQuery.trim() && searchResults.length === 0 ? (
+              <div className="flex items-center justify-center py-32">
+                <div className="text-center">
+                  <Search className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-xl font-semibold mb-2">No users found</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    Try searching with a different username or name
+                  </p>
+                </div>
+              </div>
+            ) : (
+              <div className="flex items-center justify-center py-32">
+                <div className="text-center">
+                  <Search className="w-16 h-16 mx-auto mb-4 text-gray-400" />
+                  <h3 className="text-xl font-semibold mb-2">Search for users</h3>
+                  <p className="text-gray-600 dark:text-gray-400 mb-6">
+                    Enter a username or name to find specific people
+                  </p>
+                </div>
+              </div>
+            )}
+          </>
+        ) : null}
       </div>
       </div>
     </AppLayout>

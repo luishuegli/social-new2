@@ -1,6 +1,7 @@
 'use client';
 
 import React, { createContext, useContext, useEffect, useState } from 'react';
+import { logger } from '@/lib/logger';
 import { 
   User, 
   signInWithEmailAndPassword, 
@@ -42,9 +43,9 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
 
   useEffect(() => {
     setMounted(true);
-    console.log('AuthProvider: Setting up auth state listener');
+    logger.debug('Setting up auth state listener', undefined, 'AuthProvider');
     const unsubscribe = onAuthStateChanged(auth, async (firebaseUser) => {
-      console.log('AuthProvider: Auth state changed:', firebaseUser ? 'User logged in' : 'No user');
+      logger.debug('Auth state changed', { hasUser: !!firebaseUser }, 'AuthProvider');
       
       if (firebaseUser) {
         // Store the original Firebase user for getIdToken()
@@ -57,7 +58,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
           
           // If user doesn't have profile data, ensure they do
           if (!userData) {
-            console.log('User has no Firestore profile data, creating profile...');
+            logger.info('User has no Firestore profile data, creating profile...', { uid: firebaseUser.uid }, 'AuthProvider');
             try {
               const token = await firebaseUser.getIdToken();
               const response = await fetch('/api/ensure-user-profile', {
@@ -72,7 +73,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 const updatedUserDoc = await getDoc(doc(db, 'users', firebaseUser.uid));
                 const updatedUserData = updatedUserDoc.data();
                 
-                console.log('User profile created/updated:', updatedUserData);
+                logger.info('User profile created/updated', { uid: firebaseUser.uid }, 'AuthProvider');
                 
                 const extendedUser = {
                   ...firebaseUser,
@@ -81,15 +82,16 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
                 
                 setUser(extendedUser);
               } else {
-                console.error('Failed to create user profile:', await response.text());
+                const errorText = await response.text();
+                logger.error('Failed to create user profile', { error: errorText }, 'AuthProvider');
                 setUser(firebaseUser as ExtendedUser);
               }
             } catch (profileError) {
-              console.error('Error ensuring user profile:', profileError);
+              logger.error('Error ensuring user profile', profileError, 'AuthProvider');
               setUser(firebaseUser as ExtendedUser);
             }
           } else {
-            console.log('User has existing Firestore profile data:', userData);
+            logger.debug('User has existing Firestore profile data', { uid: firebaseUser.uid }, 'AuthProvider');
             // Create extended user object with Firestore data
             const extendedUser = {
               ...firebaseUser,
@@ -99,7 +101,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
             setUser(extendedUser);
           }
         } catch (error) {
-          console.error('Error fetching user profile:', error);
+          logger.error('Error fetching user profile', error, 'AuthProvider');
           setUser(firebaseUser as ExtendedUser);
         }
       } else {
@@ -109,7 +111,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       setLoading(false);
     }, (error) => {
-      console.error('AuthProvider: Auth state error:', error);
+      logger.error('Auth state error', error, 'AuthProvider');
       setLoading(false);
     });
 
@@ -120,7 +122,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
     try {
       await signInWithEmailAndPassword(auth, email, password);
     } catch (error) {
-      console.error('Sign in error:', error);
+      logger.error('Sign in error', error, 'AuthProvider');
       throw error;
     }
   };
@@ -131,7 +133,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // New accounts must complete onboarding
       router.push('/onboarding');
     } catch (error) {
-      console.error('Sign up error:', error);
+      logger.error('Sign up error', error, 'AuthProvider');
       throw error;
     }
   };
@@ -149,7 +151,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
         }
       }
     } catch (error) {
-      console.error('Google sign in error:', error);
+      logger.error('Google sign in error', error, 'AuthProvider');
       throw error;
     }
   };
@@ -160,7 +162,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       // After logout, send user to sign-in
       router.push('/');
     } catch (error) {
-      console.error('Logout error:', error);
+      logger.error('Logout error', error, 'AuthProvider');
       throw error;
     }
   };
@@ -187,7 +189,7 @@ export function AuthProvider({ children }: { children: React.ReactNode }) {
       
       setUser(updatedUser);
     } catch (error) {
-      console.error('Update profile error:', error);
+      logger.error('Update profile error', error, 'AuthProvider');
       throw error;
     }
   };

@@ -1,5 +1,6 @@
 import { NextResponse } from 'next/server';
 import { adminDb, adminAuth, FieldValue } from '@/app/Lib/firebaseAdmin';
+import { logger } from '@/lib/logger';
 
 export async function POST(request) {
   try {
@@ -19,7 +20,7 @@ export async function POST(request) {
     try {
       decodedToken = await adminAuth.verifyIdToken(token);
     } catch (error) {
-      console.error('Token verification failed:', error);
+      logger.error('Token verification failed', error, 'like-post');
       return NextResponse.json({ 
         success: false, 
         error: 'Invalid token' 
@@ -47,46 +48,74 @@ export async function POST(request) {
       }, { status: 404 });
     }
 
-    const postData = postDoc.data();
-    const currentLikes = postData.likes || 0;
-
-    // Update the post's like count
-    const newLikeCount = isLiked ? currentLikes + 1 : Math.max(0, currentLikes - 1);
-    
-    await postRef.update({
-      likes: newLikeCount,
-      updatedAt: FieldValue.serverTimestamp()
-    });
-
-    // Update the user's like in the likes subcollection
+    // Use transaction to atomically update like count and like document
+    // This prevents race conditions when multiple users like simultaneously
     const likeRef = adminDb.collection('posts').doc(postId).collection('likes').doc(userId);
     
-    if (isLiked) {
-      await likeRef.set({
-        userId,
-        likedAt: FieldValue.serverTimestamp()
+    await adminDb.runTransaction(async (transaction) => {
+      // Get current post data within transaction
+      const postDoc = await transaction.get(postRef);
+      
+      if (!postDoc.exists) {
+        throw new Error('Post not found');
+      }
+      
+      const postData = postDoc.data();
+      const currentLikes = postData.likes || 0;
+      
+      // Check if user already liked (to prevent double-liking)
+      const likeDoc = await transaction.get(likeRef);
+      const alreadyLiked = likeDoc.exists;
+      
+      // Calculate new like count atomically
+      let newLikeCount;
+      if (isLiked) {
+        // Only increment if not already liked
+        newLikeCount = alreadyLiked ? currentLikes : currentLikes + 1;
+      } else {
+        // Only decrement if currently liked
+        newLikeCount = alreadyLiked ? Math.max(0, currentLikes - 1) : currentLikes;
+      }
+      
+      // Atomically update both the counter and the like document
+      transaction.update(postRef, {
+        likes: newLikeCount,
+        updatedAt: FieldValue.serverTimestamp()
       });
-    } else {
-      await likeRef.delete();
-    }
+      
+      if (isLiked && !alreadyLiked) {
+        transaction.set(likeRef, {
+          userId,
+          likedAt: FieldValue.serverTimestamp()
+        });
+      } else if (!isLiked && alreadyLiked) {
+        transaction.delete(likeRef);
+      }
+    });
 
-    console.log(`✅ Post ${postId} ${isLiked ? 'liked' : 'unliked'} by user ${userId}. New count: ${newLikeCount}`);
+    // Get final count for response (transaction already committed)
+    const finalPostDoc = await postRef.get();
+    const finalLikeCount = finalPostDoc.data()?.likes || 0;
 
     return NextResponse.json({
       success: true,
       message: `Post ${isLiked ? 'liked' : 'unliked'} successfully`,
-      newLikeCount,
+      newLikeCount: finalLikeCount,
       isLiked
     });
 
   } catch (error) {
-    console.error('Error liking post:', error);
+    logger.error('Error liking post', error, 'like-post');
     return NextResponse.json({ 
       success: false, 
       error: error.message 
     }, { status: 500 });
   }
 }
+
+
+
+
 
 
 

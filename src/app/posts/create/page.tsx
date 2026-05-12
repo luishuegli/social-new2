@@ -20,7 +20,7 @@ type ActivityFormState = {
 };
 
 export default function CreatePostPage() {
-  const { user } = useAuth();
+  const { user, firebaseUser } = useAuth();
   const router = useRouter();
 
   const [step, setStep] = useState<'photo-choice' | 'camera' | 'upload' | 'activity' | 'final'>('photo-choice');
@@ -50,10 +50,13 @@ export default function CreatePostPage() {
   }, [activity]);
 
   const handleCreatePost = async () => {
-    if (!user) {
+    if (!user || !firebaseUser) {
       setError('You need to be logged in to create a post.');
       return;
     }
+    
+    // Use firebaseUser.uid for Firestore rules (must match request.auth.uid)
+    const userId = firebaseUser.uid;
     if (!canContinueFromActivity) {
       setError('Please complete the activity details first.');
       setStep('activity');
@@ -69,16 +72,17 @@ export default function CreatePostPage() {
         const safeName = imageFile.name.replace(/[^a-zA-Z0-9._-]/g, '_');
         const objectRef = ref(
           storage,
-          `posts/${user.uid}/${Date.now()}_${safeName}`
+          `posts/${userId}/${Date.now()}_${safeName}`
         );
         const uploadResult = await uploadBytes(objectRef, imageFile);
         uploadedUrl = await getDownloadURL(uploadResult.ref);
       }
 
+      // IMPORTANT: Only store authorId, NOT authorName/authorAvatar
+      // User data should always be fetched from users collection (single source of truth)
+      // This ensures profile picture updates are reflected everywhere immediately
       const postDoc: {
-        authorId: string;
-        authorName: string;
-        authorAvatar: string;
+        authorId: string; // Only store the ID, fetch user data when needed
         activityTitle: string;
         activityCategory: string;
         activityDate: string;
@@ -94,10 +98,10 @@ export default function CreatePostPage() {
         likes: number;
         comments: number;
       } = {
-        // Author
-        authorId: user.uid,
-        authorName: user.displayName || user.email || 'User',
-        authorAvatar: user.profilePictureUrl || user.photoURL || '',
+        // Author - ONLY store ID, fetch from users collection when displaying
+        // IMPORTANT: Use firebaseUser.uid to match request.auth.uid in Firestore rules
+        authorId: userId,
+        // DO NOT store: authorName, authorAvatar (these are in users collection)
 
         // Activity Gate
         activityTitle: activity.title,

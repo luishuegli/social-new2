@@ -91,12 +91,12 @@ export default function CompassOnboarding() {
         } as Interest));
         console.log('Fetched interests:', interests.length);
         setAvailableInterests(interests);
-      } catch (error) {
-        console.error('Error fetching interests:', error);
-        console.error('Error details:', error.message);
-        
-        // If it's a permission error, try again after a delay
-        if (error.code === 'permission-denied') {
+       } catch (error: any) {
+         console.error('Error fetching interests:', error);
+         console.error('Error details:', error.message);
+         
+         // If it's a permission error, try again after a delay
+         if (error.code === 'permission-denied') {
           console.log('Permission denied, retrying in 1 second...');
           setTimeout(() => {
             if (user) {

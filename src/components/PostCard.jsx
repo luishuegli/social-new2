@@ -151,30 +151,23 @@ function ImageContainer({ src, alt, fallbackSeed }) {
   const resolvedSrc = error ? `https://picsum.photos/seed/${fallbackSeed}/800/600` : src;
 
   useEffect(() => {
-    // Only analyze aspect ratio if we have a valid image source
     if (!resolvedSrc) {
       setAspectRatio('aspect-[4/3]');
       return;
     }
 
-    // Analyze the image to determine optimal aspect ratio
+    // Optimize: Only analyze aspect ratio once per unique src
     const img = new window.Image();
     img.onload = () => {
-      try {
-        // Check if we have valid dimensions
-        if (img.naturalWidth && img.naturalHeight) {
-          const ratio = getOptimalAspectRatio(img.naturalWidth, img.naturalHeight);
-          setAspectRatio(getAspectRatioClasses(ratio));
-        } else {
-          setAspectRatio('aspect-[4/3]'); // Fallback for invalid dimensions
-        }
-      } catch (error) {
-        console.warn('Error analyzing image aspect ratio:', error);
-        setAspectRatio('aspect-[4/3]'); // Fallback on error
+      if (img.naturalWidth && img.naturalHeight) {
+        const ratio = getOptimalAspectRatio(img.naturalWidth, img.naturalHeight);
+        setAspectRatio(getAspectRatioClasses(ratio));
+      } else {
+        setAspectRatio('aspect-[4/3]');
       }
     };
     img.onerror = () => {
-      setAspectRatio('aspect-[4/3]'); // Fallback on load error
+      setAspectRatio('aspect-[4/3]');
     };
     img.src = resolvedSrc;
   }, [resolvedSrc]);

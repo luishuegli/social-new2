@@ -1,26 +1,36 @@
 'use client';
 
-import React from 'react';
+import { useMemo } from 'react';
 import { motion } from 'framer-motion';
 import AppLayout from '../components/AppLayout';
-import GroupCard from '../../components/ui/GroupCard';
-import FeaturedGroupCard from '../../components/ui/FeaturedGroupCard';
 import FomoGroupCard from '../../components/ui/FomoGroupCard';
-import { useGroups } from '../hooks/useGroups';
+import { usePaginatedGroups } from '@/hooks/usePaginatedGroups';
+import { InfiniteScrollTrigger } from '@/components/common/PaginationTrigger';
+import { useAuth } from '../contexts/AuthContext';
 import { Group } from '../types';
+import { slideDownVariants, fadeInVariants, scaleInVariants } from '../constants/animations';
 
 export default function GroupsPage() {
-  const { featuredGroup, standardGroups, loading, error } = useGroups();
+  const { user } = useAuth();
+  
+  const {
+    groups: userGroups,
+    loading: groupsLoading,
+    hasMore: hasMoreGroups,
+    loadMore: loadMoreGroups,
+    triggerRef: groupsTriggerRef,
+    error: groupsError
+  } = usePaginatedGroups({
+    userId: user?.uid,
+    enableInfiniteScroll: true
+  });
 
-  // Combine all groups into a single array for determining featured group
-  const allUserGroups: Group[] = featuredGroup ? [featuredGroup, ...standardGroups] : standardGroups;
-
-  // Dashboard Logic: Determine featured group and standard groups
-  const determineFeaturedGroup = (groups: Group[]): Group | null => {
-    if (!groups || groups.length === 0) return null;
+  // Memoize featured group calculation to avoid expensive recalculation on every render
+  const dashboardFeaturedGroup = useMemo(() => {
+    if (!userGroups || userGroups.length === 0) return null;
     
     // Find the group with the soonest upcoming activity
-    const groupsWithActivities = groups.filter((group) => 
+    const groupsWithActivities = userGroups.filter((group) => 
       group.nextActivity && group.nextActivity.date
     );
     
@@ -31,30 +41,21 @@ export default function GroupsPage() {
       const currentDate = new Date(current.nextActivity!.date);
       return currentDate < earliestDate ? current : earliest;
     });
-  };
+  }, [userGroups]);
 
-  const dashboardFeaturedGroup = determineFeaturedGroup(allUserGroups);
-  const dashboardStandardGroups = allUserGroups.filter(
-    (group) => group.id !== dashboardFeaturedGroup?.id
+  const dashboardStandardGroups = useMemo(() => 
+    userGroups.filter((group) => group.id !== dashboardFeaturedGroup?.id),
+    [userGroups, dashboardFeaturedGroup]
   );
-
-  // Ensure unique groups to avoid React key collisions when server/client hydration both supply items
-  const uniqueStandardGroups = React.useMemo(() => {
-    const seen = new Set<string>();
-    return dashboardStandardGroups.filter((g) => {
-      if (seen.has(g.id)) return false;
-      seen.add(g.id);
-      return true;
-    });
-  }, [dashboardStandardGroups]);
 
   return (
     <AppLayout>
       <div className="w-full max-w-full mx-auto">
         {/* Header */}
         <motion.div 
-          initial={{ opacity: 0, y: -20 }}
-          animate={{ opacity: 1, y: 0 }}
+          variants={slideDownVariants}
+          initial="hidden"
+          animate="visible"
           transition={{ duration: 0.6, ease: "easeOut" }}
           className="liquid-glass p-4 sm:p-5 lg:p-6 mb-4 sm:mb-5"
         >
@@ -77,10 +78,11 @@ export default function GroupsPage() {
         </motion.div>
 
         {/* Content */}
-        {loading ? (
+         {groupsLoading ? (
           <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            variants={fadeInVariants}
+            initial="hidden"
+            animate="visible"
             className="liquid-glass p-4 sm:p-6"
           >
             <div className="flex items-center justify-center py-12">
@@ -88,14 +90,15 @@ export default function GroupsPage() {
               <span className="ml-3 text-content-secondary">Loading groups...</span>
             </div>
           </motion.div>
-        ) : error ? (
+         ) : groupsError ? (
           <motion.div 
-            initial={{ opacity: 0 }}
-            animate={{ opacity: 1 }}
+            variants={fadeInVariants}
+            initial="hidden"
+            animate="visible"
             className="liquid-glass p-4 sm:p-6"
           >
             <div className="text-center py-12">
-              <p className="text-content-secondary mb-4">{error}</p>
+               <p className="text-content-secondary mb-4">{groupsError}</p>
               <button 
                 onClick={() => window.location.reload()} 
                 className="bg-background-secondary text-content-primary hover:bg-opacity-80 px-4 py-2 rounded-card transition-all duration-200"
@@ -121,17 +124,24 @@ export default function GroupsPage() {
               )}
 
               {/* Standard Group Cards - Larger Grid Layout */}
-              {uniqueStandardGroups.length > 0 && (
+              {dashboardStandardGroups.length > 0 && (
                 <div>
                   <div className="mb-6">
                     <h2 className="text-2xl font-bold text-content-primary">My Groups</h2>
                     <p className="text-content-secondary mt-1">Stay connected with your communities</p>
                   </div>
                   <div className="grid grid-cols-1 md:grid-cols-2 xl:grid-cols-3 gap-6">
-                    {uniqueStandardGroups.map((group) => (
+                    {dashboardStandardGroups.map((group) => (
                       <FomoGroupCard key={group.id} group={group} size="medium" />
                     ))}
                   </div>
+
+                  {/* Infinite scroll trigger */}
+                  <InfiniteScrollTrigger
+                    triggerRef={groupsTriggerRef}
+                    loading={groupsLoading}
+                    hasMore={hasMoreGroups}
+                  />
                 </div>
               )}
 
@@ -139,8 +149,9 @@ export default function GroupsPage() {
           </div>
         ) : (
           <motion.div 
-            initial={{ opacity: 0, scale: 0.95 }}
-            animate={{ opacity: 1, scale: 1 }}
+            variants={scaleInVariants}
+            initial="hidden"
+            animate="visible"
             transition={{ duration: 0.5 }}
             className="liquid-glass p-4 sm:p-6"
           >
@@ -159,7 +170,9 @@ export default function GroupsPage() {
                       await fetch('/api/seed-all', { method: 'POST' });
                       window.location.reload();
                     } catch (e) {
-                      console.error('Seeding failed', e);
+                      if (process.env.NODE_ENV === 'development') {
+                        console.error('Seeding failed', e);
+                      }
                     }
                   }}
                   className="px-4 py-2 border border-border-separator text-content-secondary rounded-card hover:bg-background-secondary transition-colors"

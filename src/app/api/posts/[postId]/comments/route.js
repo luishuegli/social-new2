@@ -1,5 +1,7 @@
 import { NextResponse } from 'next/server';
 import { adminDb, adminAuth, FieldValue } from '@/app/Lib/firebaseAdmin';
+import { getUsersDataAdmin } from '@/lib/userData';
+import { logger } from '@/lib/logger';
 
 // GET /api/posts/[postId]/comments
 export async function GET(_request, { params }) {
@@ -18,11 +20,31 @@ export async function GET(_request, { params }) {
       .limit(200)
       .get();
 
-    const comments = commentsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+    const commentsData = commentsSnap.docs.map((d) => ({ id: d.id, ...d.data() }));
+
+    // Fetch user data for all comment authors (single source of truth)
+    const authorIds = [...new Set(commentsData.map(c => c.authorId).filter(Boolean))];
+    const authorsMap = await getUsersDataAdmin(authorIds);
+
+    // Enrich comments with user data from users collection
+    // Ignore any denormalized authorName/authorAvatar in comments
+    const comments = commentsData.map(comment => {
+      const authorData = authorsMap.get(comment.authorId);
+      
+      return {
+        id: comment.id,
+        text: comment.text,
+        authorId: comment.authorId,
+        // Always fetch from users collection, never use denormalized data
+        authorName: authorData?.displayName || 'User',
+        authorAvatar: authorData?.profilePictureUrl || '',
+        createdAt: comment.createdAt,
+      };
+    });
 
     return NextResponse.json({ success: true, comments, count: comments.length });
   } catch (error) {
-    console.error('GET comments failed', error);
+    logger.error('GET comments failed', error, 'comments-api');
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }
@@ -55,15 +77,12 @@ export async function POST(request, { params }) {
       return NextResponse.json({ success: false, error: 'Comment too long (max 2000 chars)' }, { status: 400 });
     }
 
-    // Get user profile data for proper avatar and name
-    const userDoc = await adminDb.collection('users').doc(decoded.uid).get();
-    const userData = userDoc.exists ? userDoc.data() : {};
-    
+    // IMPORTANT: Only store authorId, NOT authorName/authorAvatar
+    // User data should always be fetched from users collection when displaying
     const comment = {
       text,
-      authorId: decoded.uid,
-      authorName: userData.displayName || decoded.name || decoded.email || 'User',
-      authorAvatar: userData.profilePictureUrl || decoded.picture || '',
+      authorId: decoded.uid, // Only store ID, fetch user data when displaying
+      // DO NOT store: authorName, authorAvatar (these are in users collection)
       createdAt: FieldValue.serverTimestamp(),
     };
 
@@ -78,7 +97,7 @@ export async function POST(request, { params }) {
 
     return NextResponse.json({ success: true, id: commentRef.id });
   } catch (error) {
-    console.error('POST comment failed', error);
+    logger.error('POST comment failed', error, 'comments-api');
     return NextResponse.json({ success: false, error: error.message }, { status: 500 });
   }
 }

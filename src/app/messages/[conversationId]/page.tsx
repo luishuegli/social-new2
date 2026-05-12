@@ -29,7 +29,7 @@ export default function UserProfilePage() {
   const [tab, setTab] = useState<'profile' | 'groups' | 'connections'>('profile');
 
   const displayName = profile?.displayName || 'User';
-  const avatar = profile?.profilePictureUrl || '';
+   const avatar = profile?.photoURL || '';
 
   return (
     <AppLayout>
@@ -49,10 +49,10 @@ export default function UserProfilePage() {
                           width={96} 
                           height={96} 
                           className="w-full h-full object-cover" 
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
+                           onError={(e) => {
+                             (e.target as HTMLImageElement).style.display = 'none';
+                             ((e.target as HTMLImageElement).nextSibling as HTMLElement).style.display = 'flex';
+                           }}
                         />
                         <div className="w-full h-full flex items-center justify-center" style={{ display: 'none' }}>
                           <span className="text-3xl font-bold text-content-primary">{displayName.charAt(0).toUpperCase()}</span>
@@ -67,7 +67,7 @@ export default function UserProfilePage() {
                 <div className="flex-1">
                   <h1 className="text-2xl font-bold text-content-primary mb-2">{displayName}</h1>
                   <p className="text-content-secondary mb-3">
-                    Member of {counts.groups} Groups • {profile?.stats?.activitiesPlannedCount ?? 0} Activities Planned • {counts.posts} Posts
+                     Member of {counts.groups} Groups • {counts.posts} Posts
                   </p>
                   {profile?.bio && <p className="text-content-primary leading-relaxed mb-2">{profile.bio}</p>}
                   <div className="flex items-center gap-4 text-sm text-content-secondary">
@@ -87,7 +87,7 @@ export default function UserProfilePage() {
               <LiquidGlass className="p-4 text-center"><div className="text-2xl font-bold text-content-primary mb-1">{counts.groups}</div><div className="text-sm text-content-secondary">Groups</div></LiquidGlass>
               <LiquidGlass className="p-4 text-center"><div className="text-2xl font-bold text-content-primary mb-1">{counts.posts}</div><div className="text-sm text-content-secondary">Posts</div></LiquidGlass>
               <LiquidGlass className="p-4 text-center"><div className="text-2xl font-bold text-content-primary mb-1">{connections.length}</div><div className="text-sm text-content-secondary">Connections</div></LiquidGlass>
-              <LiquidGlass className="p-4 text-center"><div className="text-2xl font-bold text-content-primary mb-1">{profile?.stats?.activitiesPlannedCount ?? 0}</div><div className="text-sm text-content-secondary">Planned</div></LiquidGlass>
+               <LiquidGlass className="p-4 text-center"><div className="text-2xl font-bold text-content-primary mb-1">0</div><div className="text-sm text-content-secondary">Planned</div></LiquidGlass>
             </div>
           </motion.div>
 
@@ -129,21 +129,25 @@ export default function UserProfilePage() {
             <motion.div variants={itemVariants}>
               <LiquidGlass className="p-2">
                 <div className="divide-y divide-border-separator">
-                  {connections.map(c => (
-                    <div key={c.id} className="flex items-center gap-3 p-3">
-                      <div className="w-10 h-10 rounded-full overflow-hidden bg-accent-primary flex items-center justify-center">
-                        {c.other.avatarUrl ? (
-                          <Image src={c.other.avatarUrl} alt={c.other.name} width={40} height={40} className="w-full h-full object-cover"/>
-                        ) : (
-                          <span className="text-sm font-semibold text-content-primary">{c.other.name?.charAt(0)?.toUpperCase()}</span>
-                        )}
+                  {connections.map(c => {
+                    const otherUser = c.members.find(m => m.uid !== userId);
+                    if (!otherUser) return null;
+                    return (
+                      <div key={c.id} className="flex items-center gap-3 p-3">
+                        <div className="w-10 h-10 rounded-full overflow-hidden bg-accent-primary flex items-center justify-center">
+                          {otherUser.photoURL ? (
+                            <Image src={otherUser.photoURL} alt={otherUser.displayName || 'User'} width={40} height={40} className="w-full h-full object-cover"/>
+                          ) : (
+                            <span className="text-sm font-semibold text-content-primary">{(otherUser.displayName || 'U').charAt(0).toUpperCase()}</span>
+                          )}
+                        </div>
+                        <div className="flex-1">
+                          <p className="font-semibold text-content-primary">{otherUser.displayName || otherUser.uid}</p>
+                          <p className="text-xs text-content-secondary">Connected</p>
+                        </div>
                       </div>
-                      <div className="flex-1">
-                        <p className="font-semibold text-content-primary">{c.other.name}</p>
-                        <p className="text-xs text-content-secondary">Connected</p>
-                      </div>
-                    </div>
-                  ))}
+                    );
+                  })}
                   {connections.length === 0 && <div className="p-4 text-center text-content-secondary">No connections yet.</div>}
                 </div>
               </LiquidGlass>

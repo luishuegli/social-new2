@@ -9,7 +9,8 @@ import AppLayout from '../../components/AppLayout';
 import LiquidGlass from '@/components/ui/LiquidGlass';
 import { useUserProfile } from '@/app/hooks/useUserProfile';
 import { useUserGroups } from '@/app/hooks/useUserGroups';
-import { useUserPosts } from '@/app/hooks/useUserPosts';
+import { usePaginatedUserPosts } from '@/hooks/usePaginatedUserPosts';
+import { InfiniteScrollTrigger } from '@/components/common/PaginationTrigger';
 import GroupCard from '@/components/ui/GroupCard';
 import PortfolioFilter from '@/components/profile/PortfolioFilter';
 import PortfolioPostCard from '@/components/profile/PortfolioPostCard';
@@ -40,11 +41,22 @@ export default function UserProfilePage() {
   const userId = params.userId as string;
   const { profile, counts } = useUserProfile(userId);
   const { groups } = useUserGroups(userId);
-  const { posts } = useUserPosts(userId);
   
   // All hooks must be called before any conditional returns
   const [activeTab, setActiveTab] = React.useState<'portfolio' | 'groups'>('portfolio');
   const [filter, setFilter] = React.useState<'All' | 'Live' | 'Collaborative'>('All');
+  
+  const {
+    posts,
+    loading: postsLoading,
+    hasMore: hasMorePosts,
+    loadMore: loadMorePosts,
+    triggerRef: postsTriggerRef
+  } = usePaginatedUserPosts({
+    userId: userId || '',
+    filter: filter === 'All' ? 'all' : filter,
+    enableInfiniteScroll: true
+  });
 
   // Add loading state
   if (!profile) {
@@ -63,13 +75,13 @@ export default function UserProfilePage() {
   const user = {
     id: userId,
     name: profile?.username || profile?.displayName || 'User',
-    avatar: profile?.profilePictureUrl || '',
+     avatar: profile?.photoURL || '',
     bio: profile?.bio || '',
     location: '',
     memberSince: new Date().toISOString(),
     stats: {
       groupsCount: counts?.groups || groups.length || 0,
-      activitiesPlanned: profile?.stats?.activitiesPlannedCount || 0,
+       activitiesPlanned: 0,
       activitiesJoined: 0,
       postsCount: posts.length || 0,
     },
@@ -125,10 +137,10 @@ export default function UserProfilePage() {
                           width={96}
                           height={96}
                           className="w-full h-full object-cover"
-                          onError={(e) => {
-                            e.target.style.display = 'none';
-                            e.target.nextSibling.style.display = 'flex';
-                          }}
+                           onError={(e) => {
+                             (e.target as HTMLImageElement).style.display = 'none';
+                             ((e.target as HTMLImageElement).nextSibling as HTMLElement).style.display = 'flex';
+                           }}
                         />
                         <div className="w-full h-full flex items-center justify-center" style={{ display: 'none' }}>
                           <span className="text-3xl font-bold text-content-primary">
@@ -212,13 +224,7 @@ export default function UserProfilePage() {
                   <PortfolioFilter activeFilter={filter} onFilterChange={setFilter} />
                 </div>
                 {(() => {
-                  const filtered = posts.filter((p: any) => {
-                    if (filter === 'Live') return p?.authenticityType === 'Live Post';
-                    if (filter === 'Collaborative') return p?.postType === 'Collaborative';
-                    return true;
-                  });
-
-                  if (filtered.length === 0) {
+                  if (posts.length === 0 && !postsLoading) {
                     return (
                       <div className="max-w-xl mx-auto">
                         <div className="break-inside-avoid">
@@ -235,7 +241,7 @@ export default function UserProfilePage() {
 
                   return (
                     <div className="columns-1 sm:columns-2 lg:columns-3 gap-4 [column-fill:_balance]">{/* masonry columns */}
-                      {filtered.map((p: any) => {
+                      {posts.map((p: any) => {
                         const isCollab = p?.postType === 'Collaborative';
                         const wrapperClasses = isCollab ? 'break-inside-avoid mb-4 sm:col-span-2' : 'break-inside-avoid mb-4';
                         const forwarded = {
@@ -258,6 +264,13 @@ export default function UserProfilePage() {
                     </div>
                   );
                 })()}
+
+                {/* Infinite scroll trigger for portfolio */}
+                <InfiniteScrollTrigger
+                  triggerRef={postsTriggerRef}
+                  loading={postsLoading}
+                  hasMore={hasMorePosts}
+                />
               </div>
             ) : (
               <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
